@@ -69,41 +69,6 @@ func doProvision(cmd *cobra.Command, args []string) {
 	}
 }
 
-/*
-func provisionDeployments(deployments []format.DeploymentV1) error {
-	failFast := viper.GetBool("fail-fast")
-	for _, deployment := range deployments {
-		if deploymentID, ok := deploymentsIDsByName[deployment.Name]; ok {
-			err := resizeDeployment(client, deploymentID,
-				deployment.Scaling)
-			if err != nil {
-				if failFast {
-					return err
-				}
-				fmt.Printf("Unable to resize the '%s' deployment: %v\n",
-					deployment.Name, err)
-			}
-			continue
-		}
-		clusterID, ok := clusterIDsByName[deployment.Cluster]
-		if !ok {
-			if failFast {
-				return err
-			}
-			fmt.Printf("Unable to create the '%s' deployment. Cluster '%s' does not exist\n",
-				deployment.Name, deployment.Cluster)
-		}
-		err := createDeployment(client, clusterID, accountID, deployment)
-		if err != nil {
-			if failFast {
-				return err
-			}
-			fmt.Printf("Unable to create the '%s' deployment: %v\n",
-				deployment.Name, err)
-		}
-	}
-}
-*/
 func init() {
 	RootCmd.AddCommand(provisionCmd)
 	provisionCmd.Flags().BoolP("fail-fast", "f", false,
