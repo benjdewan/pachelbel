@@ -23,8 +23,8 @@ package cmd
 import (
 	"log"
 
-	"github.com/bdewan/pachelbel/config"
-	"github.com/bdewan/pachelbel/connection"
+	"github.com/benjdewan/pachelbel/config"
+	"github.com/benjdewan/pachelbel/connection"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
