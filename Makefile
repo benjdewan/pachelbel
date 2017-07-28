@@ -11,8 +11,9 @@ endif
 ifdef GOBIN
     $(error To do cross-compilation GOBIN cannot be set)
 endif
-	go get -v github.com/alecthomas/gometalinter
+	go get -u github.com/alecthomas/gometalinter github.com/kardianos/govendor
 	$(GOPATH)/bin/gometalinter --install
+	$(GOPATH)/bin/govendor sync
 
 post-build: linux-build macos-build windows-build
 

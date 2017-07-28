@@ -1,2 +1,5 @@
 *~
 .*.sw[a-z]
+vendor/github.com/
+vendor/golang.org/
+vendor/gopkg.in/
