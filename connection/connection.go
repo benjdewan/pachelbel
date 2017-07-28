@@ -70,14 +70,34 @@ func Init(apiKey string, verbose bool) (*Connection, error) {
 }
 
 func Provision(cxn *Connection, deployment Deployment, verbose bool) error {
-	if _, ok := cxn.deploymentIDsByName[deployment.GetName()]; ok {
-		return rescale(cxn, deployment, verbose)
+	if id, ok := cxn.deploymentIDsByName[deployment.GetName()]; ok {
+		return rescale(cxn, id, deployment, verbose)
 	}
 	return provision(cxn, deployment, verbose)
 }
 
-func rescale(cxn *Connection, deployment Deployment, verbose bool) error {
-	fmt.Println("I would totally resize something here!")
+func rescale(cxn *Connection, deploymentID string, deployment Deployment, verbose bool) error {
+	scalings, errs := cxn.client.GetScalings(deploymentID)
+	if len(errs) != 0 {
+		return fmt.Errorf("Unable get scaling status for '%s': %v",
+			deployment.GetName(), errsOut(errs))
+	}
+	if scalings.AllocatedUnits == deployment.GetScaling() {
+		if verbose {
+			fmt.Printf("Nothing to do for '%s'\n", deployment.GetName())
+		}
+		return nil
+	}
+
+	sParams := compose.ScalingsParams{
+		DeploymentID: deploymentID,
+		Units:        deployment.GetScaling(),
+	}
+	_, errs = cxn.client.SetScalings(sParams)
+	if len(errs) != 0 {
+		return fmt.Errorf("Unable to resize '%s': %v\n",
+			deployment.GetName(), errsOut(errs))
+	}
 	return nil
 }
 
