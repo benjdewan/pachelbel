@@ -30,6 +30,9 @@ name: postgres-benjdewan-01
 notes: |
     This is a test of pachelbel
 
+# For databases that support ssl, use this line to ensure it is set.
+ssl: true
+
 # If you want to make this deployment visible to anyone other than the user that
 # created it, you should create a team via the web interface, grab the team ID, and
 # then specify it here along with the roles that team should have:
