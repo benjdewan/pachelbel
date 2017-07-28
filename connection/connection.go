@@ -132,7 +132,8 @@ func provision(cxn *Connection, deployment Deployment, verbose bool) error {
 	//This needs to be wrapped in retry logic
 	newDeployment, errs := cxn.client.CreateDeployment(dParams)
 	if errs != nil {
-		return fmt.Errorf("Unable to create '%s': %s\n", errsOut(errs))
+		return fmt.Errorf("Unable to create '%s': %s\n",
+			deployment.GetName(), errsOut(errs))
 	}
 	if verbose {
 		fmt.Printf("Provision of '%s' is complete!\n", newDeployment.Name)
