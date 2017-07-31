@@ -1,4 +1,4 @@
-LDFLAGS="-X github.com/benjdewan/pachelbel/cmd.version=$(shell git describe --tags || echo DEV-BUILD)"
+LDFLAGS="-X /cmd.version=$(shell git describe --tags || echo DEV-BUILD)"
 
 .PHONY: all clean
 
