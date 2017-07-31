@@ -6,19 +6,19 @@ import (
 )
 
 type DeploymentV1 struct {
-	Version int         `yaml:"version"`
-	Type    string      `yaml:"type"`
-	Cluster string      `yaml:"cluster"`
-	Name    string      `yaml:"name"`
-	Notes   string      `yaml:"notes"`
-	SSL     bool        `yaml:"ssl"`
-	Teams   [](*TeamV1) `yaml:"teams"`
-	Scaling int         `yaml:"scaling"`
+	Version int         `json:"version"`
+	Type    string      `json:"type"`
+	Cluster string      `json:"cluster"`
+	Name    string      `json:"name"`
+	Notes   string      `json:"notes"`
+	SSL     bool        `json:"ssl"`
+	Teams   [](*TeamV1) `json:"teams"`
+	Scaling int         `json:"scaling"`
 }
 
 type TeamV1 struct {
-	ID   string `yaml:"id"`
-	Role string `yaml:"role"`
+	ID   string `json:"id"`
+	Role string `json:"role"`
 }
 
 func (d DeploymentV1) GetName() string {
