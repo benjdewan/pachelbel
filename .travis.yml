@@ -1,5 +1,23 @@
 language: go
 
 go:
-    - 1.8
-    - master
+- 1.8
+
+before_deploy:
+  - mv $GOPATH/bin/linux_amd64/pachelbel .
+  - tar czf ./pachelbel_linux_amd64.tgz pachelbel
+  - mv $GOPATH/bin/darwin_amd64/pachelbel .
+  - tar czf ./pachelbel_darwin_amd64.tgz pachelbel
+  - mv $GOPATH/bin/windows_amd64/pachelbel.exe .
+  - zip ./pacbhelbel_windows_amd64.zip ./pachelbel.exe
+
+deploy:
+  provider: releases
+  file:
+      - pachelbel_linux_amd64.tgz
+      - pachelbel_darwin_amd64.tgz
+      - pachelbel_windows_amd64.zip
+  api_key:
+    secure: UdI8QXj4ftVKoE2poKVC3NKr2xGgVHdC5+/o5I3C7VXKibI98Go/t6TfWkkOBH8fzYjj5hSZ+npjeopZCJUrSezRL1mtC7gyF5h+ExvcgkJjJNv/VhFQpopddJUifHiDXk/oGSV/cXsZR0N0IGfX0QB2/Y6DiLY5bAuZ6hSMHgOr8jsFKPKZoMYOFImdLr9Ducln1aPgNQO/HlGVrGwDsCUBazD4onUm7fMBNXcBUvnSLVas3izTda+NYYlX2aQncSrqvuQFi7sK+ny4RwX2tCW2m2/5WVk5oHTmhzr9B4FIfYi5pyzPKywvUNwJgkepLCbhkZVx3Uh7nN/rZCiRhBPa3qiVXihexi0ydbwnJm+d5vjbFreK2fzjGHEDT2jEUfgVzQiV6XE8Cch5yVT+gfg43E+nUF70Uja063ti8/9GvA27h0c1dg+bu5tz8p/lB8YIv3f0NeYG3odAzTH/mfSgV5S8l5ztGqMw2G192ZdvAPnSI0GMutoa4d1tdzrTTi8n9iY9sCJdrMTtuGK2hzUBRNUlFjw5+mT+WQIGdUdgi/A2Q4NmY+I7NEyeWwPdqB1MHhjqdIXjqWY+HWxparCaUgdg2rkA4z+VvVDVnCc2lqKYeiV9x1cvdFpAFiyGg1Yg6KluZoialh/xwNq761JsTZGcNWCpRrFkYjbs8PA=
+  on:
+    tags: true
