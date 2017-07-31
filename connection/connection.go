@@ -39,10 +39,10 @@ type Deployment interface {
 }
 
 type Connection struct {
-	client              *compose.Client
-	accountID           string
-	clusterIDsByName    map[string]string
-	deploymentIDsByName map[string]string
+	client            *compose.Client
+	accountID         string
+	clusterIDsByName  map[string]string
+	deploymentsByName map[string](*compose.Deployment)
 }
 
 func Init(apiKey string, verbose bool) (*Connection, error) {
@@ -64,14 +64,14 @@ func Init(apiKey string, verbose bool) (*Connection, error) {
 		return cxn, err
 	}
 
-	cxn.deploymentIDsByName, err = fetchDeployments(cxn.client)
+	cxn.deploymentsByName, err = fetchDeployments(cxn.client)
 
 	return cxn, err
 }
 
 func Provision(cxn *Connection, deployment Deployment, verbose bool) error {
-	if id, ok := cxn.deploymentIDsByName[deployment.GetName()]; ok {
-		return rescale(cxn, id, deployment, verbose)
+	if existing, ok := cxn.deploymentsByName[deployment.GetName()]; ok {
+		return rescale(cxn, existing.ID, deployment, verbose)
 	}
 	return provision(cxn, deployment, verbose)
 }
@@ -138,7 +138,7 @@ func provision(cxn *Connection, deployment Deployment, verbose bool) error {
 	if verbose {
 		fmt.Printf("Provision of '%s' is complete!\n", newDeployment.Name)
 	}
-	cxn.deploymentIDsByName[newDeployment.ID] = newDeployment.Name
+	cxn.deploymentsByName[newDeployment.Name] = newDeployment
 
 	return nil
 }
@@ -179,23 +179,23 @@ func fetchClusters(client *compose.Client) (map[string]string, error) {
 	return clusterIDsByName, nil
 }
 
-func fetchDeployments(client *compose.Client) (map[string]string, error) {
-	deploymentIDsByName := make(map[string]string)
+func fetchDeployments(client *compose.Client) (map[string](*compose.Deployment), error) {
+	deploymentsByName := make(map[string](*compose.Deployment))
 	deployments, errs := client.GetDeployments()
 	if len(errs) != 0 {
-		return deploymentIDsByName, fmt.Errorf("Failed to get deployments:\n%s",
+		return deploymentsByName, fmt.Errorf("Failed to get deployments:\n%s",
 			errsOut(errs))
 	}
 
 	if deployments == nil {
 		// This is not necessarily an error.
-		return deploymentIDsByName, nil
+		return deploymentsByName, nil
 	}
 
 	for _, deployment := range *deployments {
-		deploymentIDsByName[deployment.Name] = deployment.ID
+		deploymentsByName[deployment.Name] = &deployment
 	}
-	return deploymentIDsByName, nil
+	return deploymentsByName, nil
 }
 
 func errsOut(errs []error) string {
