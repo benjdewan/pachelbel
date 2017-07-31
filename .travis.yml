@@ -4,7 +4,7 @@ go:
 - 1.8
 
 before_deploy:
-  - mv $GOPATH/bin/linux_amd64/pachelbel .
+  - mv $GOPATH/bin/pachelbel .
   - tar czf ./pachelbel_linux_amd64.tgz pachelbel
   - mv $GOPATH/bin/darwin_amd64/pachelbel .
   - tar czf ./pachelbel_darwin_amd64.tgz pachelbel
