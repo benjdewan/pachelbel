@@ -1,3 +1,23 @@
+// Copyright © 2017 ben dewan <benj.dewan@gmail.com>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 package config
 
 import (
@@ -6,14 +26,16 @@ import (
 )
 
 type DeploymentV1 struct {
-	Version int         `json:"version"`
-	Type    string      `json:"type"`
-	Cluster string      `json:"cluster"`
-	Name    string      `json:"name"`
-	Notes   string      `json:"notes"`
-	SSL     bool        `json:"ssl"`
-	Teams   [](*TeamV1) `json:"teams"`
-	Scaling int         `json:"scaling"`
+	Version    int         `json:"version"`
+	Type       string      `json:"type"`
+	Cluster    string      `json:"cluster"`
+	Name       string      `json:"name"`
+	Notes      string      `json:"notes"`
+	SSL        bool        `json:"ssl"`
+	Teams      [](*TeamV1) `json:"teams"`
+	Scaling    *int        `json:"scaling"`
+	WiredTiger bool        `json:"wired_tiger"`
+	Timeout    *int        `json:"timeout,omitempty"`
 }
 
 type TeamV1 struct {
@@ -38,7 +60,21 @@ func (d DeploymentV1) GetCluster() string {
 }
 
 func (d DeploymentV1) GetScaling() int {
-	return d.Scaling
+	if d.Scaling == nil {
+		return 1
+	}
+	return *d.Scaling
+}
+
+func (d DeploymentV1) GetTimeout() float64 {
+	if d.Timeout == nil {
+		return float64(900)
+	}
+	return float64(*d.Timeout)
+}
+
+func (d DeploymentV1) GetWiredTiger() bool {
+	return d.Type == "mongodb" && d.WiredTiger
 }
 
 func (d DeploymentV1) GetSSL() bool {
@@ -84,9 +120,14 @@ func Validate(d DeploymentV1, input string) error {
 		addToBuf(&buf, "The 'name' field is required\n")
 	}
 
-	if d.Scaling < 0 {
+	if d.Scaling != nil && *d.Scaling < 1 {
 		valid = false
 		addToBuf(&buf, "The 'scaling' field must be an integer >= 1\n")
+	}
+
+	if d.WiredTiger && d.Type != "mongodb" {
+		valid = false
+		addToBuf(&buf, "The 'wired_tiger' field is only valid for MongoDB\n")
 	}
 
 	if d.Teams != nil {

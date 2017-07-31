@@ -1,3 +1,23 @@
+// Copyright © 2017 ben dewan <benj.dewan@gmail.com>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 package config
 
 import (
@@ -52,7 +72,7 @@ func readDir(root string, verbose bool) ([]DeploymentV1, error) {
 		}
 		if info.IsDir() {
 			if verbose {
-				fmt.Printf("Skipping %v\n", path)
+				fmt.Printf("Skipping %v.\n", path)
 				return nil
 			}
 		}
@@ -67,9 +87,7 @@ func readDir(root string, verbose bool) ([]DeploymentV1, error) {
 }
 
 func readFile(path string, verbose bool) ([]DeploymentV1, error) {
-	if verbose {
-		fmt.Printf("Reading configuration from %v\n", path)
-	}
+	fmt.Printf("Reading configuration from %v\n", path)
 	deployments := []DeploymentV1{}
 	file, err := os.Open(path)
 	if err != nil {
@@ -88,7 +106,7 @@ func readFile(path string, verbose bool) ([]DeploymentV1, error) {
 		}
 		if filtered(deployment) {
 			if verbose {
-				fmt.Printf("Not updating the '%s' deployment. It's cluster has been filtered out\n",
+				fmt.Printf("Not updating the '%s' deployment. Its cluster has been filtered out\n",
 					deployment.Name)
 			}
 			continue

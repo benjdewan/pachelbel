@@ -22,20 +22,23 @@ package connection
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
+	"os"
 
 	compose "github.com/compose/gocomposeapi"
+	"github.com/ghodss/yaml"
 )
 
 type Deployment interface {
-	GetName() string
 	GetCluster() string
-	GetType() string
+	GetName() string
 	GetNotes() string
 	GetScaling() int
 	GetSSL() bool
 	GetTeams() map[string]([]string)
+	GetTimeout() float64
+	GetType() string
+	GetWiredTiger() bool
 }
 
 type Connection struct {
@@ -43,10 +46,11 @@ type Connection struct {
 	accountID         string
 	clusterIDsByName  map[string]string
 	deploymentsByName map[string](*compose.Deployment)
+	newDeploymentIDs  []string
 }
 
 func Init(apiKey string, verbose bool) (*Connection, error) {
-	cxn := &Connection{}
+	cxn := &Connection{newDeploymentIDs: []string{}}
 	var err error
 
 	cxn.client, err = createClient(apiKey)
@@ -76,137 +80,46 @@ func Provision(cxn *Connection, deployment Deployment, verbose bool) error {
 	return provision(cxn, deployment, verbose)
 }
 
-func rescale(cxn *Connection, deploymentID string, deployment Deployment, verbose bool) error {
-	scalings, errs := cxn.client.GetScalings(deploymentID)
-	if len(errs) != 0 {
-		return fmt.Errorf("Unable get scaling status for '%s': %v",
-			deployment.GetName(), errsOut(errs))
-	}
-	if scalings.AllocatedUnits == deployment.GetScaling() {
-		if verbose {
-			fmt.Printf("Nothing to do for '%s'\n", deployment.GetName())
-		}
-		return nil
-	}
+func (cxn *Connection) ConnectionStringsYAML(outFile string, verbose bool) error {
+	fmt.Printf("Writing connection strings to '%v'\n", outFile)
 
-	sParams := compose.ScalingsParams{
-		DeploymentID: deploymentID,
-		Units:        deployment.GetScaling(),
-	}
-	_, errs = cxn.client.SetScalings(sParams)
-	if len(errs) != 0 {
-		return fmt.Errorf("Unable to resize '%s': %v\n",
-			deployment.GetName(), errsOut(errs))
-	}
-	return nil
-}
-
-func provision(cxn *Connection, deployment Deployment, verbose bool) error {
-	if verbose {
-		fmt.Printf("Provisioning '%s' in '%s'...\n", deployment.GetName(),
-			deployment.GetCluster())
-	}
-
-	clusterID, ok := cxn.clusterIDsByName[deployment.GetCluster()]
-	if !ok {
-		return fmt.Errorf("Unable to provsion '%s'. The specified cluster name, '%s' does not map to a known cluster.",
-			deployment.GetName(), deployment.GetCluster())
-	}
-
-	dParams := compose.DeploymentParams{
-		Name:         deployment.GetName(),
-		AccountID:    cxn.accountID,
-		ClusterID:    clusterID,
-		DatabaseType: deployment.GetType(),
-		Notes:        deployment.GetNotes(),
-		// Mising WiredTiger!!!
-	}
-
-	if deployment.GetScaling() > 1 {
-		dParams.Units = deployment.GetScaling()
-	}
-	if deployment.GetSSL() {
-		dParams.SSL = true
-	}
-
-	//This needs to be wrapped in retry logic
-	newDeployment, errs := cxn.client.CreateDeployment(dParams)
-	if errs != nil {
-		return fmt.Errorf("Unable to create '%s': %s\n",
-			deployment.GetName(), errsOut(errs))
-	}
-	if verbose {
-		fmt.Printf("Provision of '%s' is complete!\n", newDeployment.Name)
-	}
-	cxn.deploymentsByName[newDeployment.Name] = newDeployment
-
-	return nil
-}
-
-func createClient(apiKey string) (*compose.Client, error) {
-	if len(apiKey) == 0 {
-		return nil, errors.New("No API key found. Specify one using the --api-key flag or the COMPOSE_API_KEY environment variable")
-	}
-
-	return compose.NewClient(apiKey)
-}
-
-func fetchAccountID(client *compose.Client) (string, error) {
-	account, errs := client.GetAccount()
-	if len(errs) != 0 {
-		return "", fmt.Errorf("Failed to get account id:\n%s", errsOut(errs))
-	}
-
-	return account.ID, nil
-}
-
-func fetchClusters(client *compose.Client) (map[string]string, error) {
-	clusterIDsByName := make(map[string]string)
-
-	clusters, errs := client.GetClusters()
-	if len(errs) != 0 {
-		return clusterIDsByName, fmt.Errorf("Failed to get cluster information:\n%s",
-			errsOut(errs))
-	}
-
-	if clusters == nil {
-		return clusterIDsByName, fmt.Errorf("No clusters found")
-	}
-
-	for _, cluster := range *clusters {
-		clusterIDsByName[cluster.Name] = cluster.ID
-	}
-	return clusterIDsByName, nil
-}
-
-func fetchDeployments(client *compose.Client) (map[string](*compose.Deployment), error) {
-	deploymentsByName := make(map[string](*compose.Deployment))
-	deployments, errs := client.GetDeployments()
-	if len(errs) != 0 {
-		return deploymentsByName, fmt.Errorf("Failed to get deployments:\n%s",
-			errsOut(errs))
-	}
-
-	if deployments == nil {
-		// This is not necessarily an error.
-		return deploymentsByName, nil
-	}
-
-	for _, deployment := range *deployments {
-		deploymentsByName[deployment.Name] = &deployment
-	}
-	return deploymentsByName, nil
-}
-
-func errsOut(errs []error) string {
 	var buf bytes.Buffer
-	for _, err := range errs {
-		if _, wErr := buf.WriteString(err.Error()); wErr != nil {
-			panic(wErr)
+	for _, deploymentID := range cxn.newDeploymentIDs {
+		if verbose {
+			fmt.Printf("Fetching latest metadata for deployment '%v'\n",
+				deploymentID)
 		}
-		if _, wErr := buf.WriteString("\n"); wErr != nil {
-			panic(wErr)
+		deployment, errs := cxn.client.GetDeployment(deploymentID)
+		if len(errs) != 0 {
+			return fmt.Errorf("Unable to resolve deployment '%v':\n%v\n",
+				deploymentID, errsOut(errs))
+		}
+		yml, err := yaml.Marshal(cxnString{
+			Name:              deployment.Name,
+			ConnectionStrings: deployment.Connection,
+		})
+		if err != nil {
+			return err
+		}
+		if _, err := buf.Write(yml); err != nil {
+			// This should never happen
+			panic(err)
+		}
+		if _, err := buf.WriteString("---\n"); err != nil {
+			// This should never happen
+			panic(err)
 		}
 	}
-	return buf.String()
+
+	handle, err := os.Create(outFile)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := handle.Close(); closeErr != nil {
+			panic(closeErr)
+		}
+	}()
+	_, err = handle.Write(buf.Bytes())
+	return err
 }

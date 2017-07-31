@@ -67,6 +67,11 @@ func doProvision(cmd *cobra.Command, args []string) {
 			log.Printf("%v. Continuing...", err)
 		}
 	}
+
+	if err := cxn.ConnectionStringsYAML(viper.GetString("output"), verbose); err != nil {
+		log.Fatalf("Unable to create connection string output file:\n%v",
+			err)
+	}
 }
 
 func init() {
@@ -80,7 +85,10 @@ func init() {
 		`By default pachelbel provision will provision every deployment
 			provided. Use this flag to limit pachelbel to only
 			process deployments to the specified cluster`)
+	provisionCmd.Flags().StringP("output", "o", "./connection-strings.yml",
+		`The file to write connection string information to.`)
 
 	viper.BindPFlag("fail-fast", provisionCmd.Flags().Lookup("fail-fast"))
 	viper.BindPFlag("cluster", provisionCmd.Flags().Lookup("cluster"))
+	viper.BindPFlag("output", provisionCmd.Flags().Lookup("output"))
 }

@@ -31,8 +31,18 @@ name: postgres-benjdewan-01
 notes: |
     This is a test of pachelbel
 
+# Optionally specify the scaling size of the deployment. The default is '1'
+scaling: 2
+
 # For databases that support ssl, use this line to ensure it is set.
 ssl: true
+
+# The timeout period, in seconds, to wait for provisioning recipes (creating
+# new deployments, scaling existing deployments &c.) to complete. If no recipes
+# are triggered, no waiting will occur.
+#
+# If this field is not set a default timeout of 900 seconds (15 minutes) is used.
+timeout: 300
 
 # If you want to make this deployment visible to anyone other than the user that
 # created it, you should create a team via the web interface, grab the team ID, and
@@ -40,6 +50,10 @@ ssl: true
 teams:
     - { id: "123456789", role: "admin" }
     - { id: "123456789", role: "developer" }
+
+# WiredTiger is a storage engine option for MongoDB. Setting this field for
+# any other type of deployment will throw an error
+wired_tiger: true
 ```
 
 Multiple YAML configuration objects can be combined into a single file (separated using a newline and the `---` string), or they can span multiple files passed in on the command line. Pachelbel can also read directories of configuration files, but does not do so recursively.
