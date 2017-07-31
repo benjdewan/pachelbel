@@ -18,13 +18,13 @@ endif
 post-build: linux-build macos-build windows-build
 
 linux-build: test-build
-	GOOS=linux GOARCH=amd64 go install github.com/benjdewan/pachelbel
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go install github.com/benjdewan/pachelbel
 
 macos-build: test-build
-	GOOS=darwin GOARCH=amd64 go install github.com/benjdewan/pachelbel
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go install github.com/benjdewan/pachelbel
 
 windows-build: test-build
-	GOOS=windows GOARCH=amd64 go install github.com/benjdewan/pachelbel
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go install github.com/benjdewan/pachelbel
 
 test-build: pre-build
 	$(GOPATH)/bin/gometalinter cmd/ connection/ main.go
