@@ -3,3 +3,7 @@
 vendor/github.com/
 vendor/golang.org/
 vendor/gopkg.in/
+pachelbel
+pachelbel.exe
+pachelbel*.tgz
+pachelbel*.zip
