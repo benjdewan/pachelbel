@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"time"
 
 	compose "github.com/compose/gocomposeapi"
 	"github.com/ghodss/yaml"
@@ -47,10 +48,14 @@ type Connection struct {
 	clusterIDsByName  map[string]string
 	deploymentsByName map[string](*compose.Deployment)
 	newDeploymentIDs  []string
+	pollingInterval   time.Duration
 }
 
-func Init(apiKey string, verbose bool) (*Connection, error) {
-	cxn := &Connection{newDeploymentIDs: []string{}}
+func Init(apiKey string, pollingInterval int, verbose bool) (*Connection, error) {
+	cxn := &Connection{
+		newDeploymentIDs: []string{},
+		pollingInterval:  time.Duration(pollingInterval) * time.Second,
+	}
 	var err error
 
 	cxn.client, err = createClient(apiKey)

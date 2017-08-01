@@ -108,7 +108,7 @@ func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64, verbose bo
 		if recipe.Status == "complete" {
 			return nil
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(cxn.pollingInterval)
 	}
 	return fmt.Errorf("Timed out waiting on recipe %v to complete", recipeID)
 }

@@ -52,7 +52,8 @@ func doProvision(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	cxn, err := connection.Init(viper.GetString("api-key"), verbose)
+	cxn, err := connection.Init(viper.GetString("api-key"),
+		viper.GetInt("polling-interval"), verbose)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -87,8 +88,12 @@ func init() {
 			process deployments to the specified cluster`)
 	provisionCmd.Flags().StringP("output", "o", "./connection-strings.yml",
 		`The file to write connection string information to.`)
+	provisionCmd.Flags().IntP("polling-interval", "p", 5,
+		`The polling interval, in seconds, to use when
+			waiting for a provisioning recipe to complete`)
 
 	viper.BindPFlag("fail-fast", provisionCmd.Flags().Lookup("fail-fast"))
 	viper.BindPFlag("cluster", provisionCmd.Flags().Lookup("cluster"))
 	viper.BindPFlag("output", provisionCmd.Flags().Lookup("output"))
+	viper.BindPFlag("polling-interval", provisionCmd.Flags().Lookup("polling-interval"))
 }
