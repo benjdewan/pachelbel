@@ -42,6 +42,7 @@ func rescale(cxn *Connection, deploymentID string, deployment Deployment, verbos
 	}
 	if scalings.AllocatedUnits == deployment.GetScaling() {
 		fmt.Printf("Nothing to do for '%s'\n", deployment.GetName())
+		cxn.newDeploymentIDs = append(cxn.newDeploymentIDs, deploymentID)
 		return nil
 	}
 
