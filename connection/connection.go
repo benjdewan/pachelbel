@@ -26,7 +26,7 @@ import (
 	"os"
 	"time"
 
-	compose "github.com/compose/gocomposeapi"
+	compose "github.com/benjdewan/gocomposeapi"
 	"github.com/ghodss/yaml"
 )
 
@@ -36,7 +36,7 @@ type Deployment interface {
 	GetNotes() string
 	GetScaling() int
 	GetSSL() bool
-	GetTeams() map[string]([]string)
+	GetTeamRoles() map[string]([]string)
 	GetTimeout() float64
 	GetType() string
 	GetWiredTiger() bool

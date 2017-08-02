@@ -81,17 +81,17 @@ func (d DeploymentV1) GetSSL() bool {
 	return d.SSL
 }
 
-func (d DeploymentV1) GetTeams() map[string]([]string) {
-	teamRolesByID := make(map[string]([]string))
+func (d DeploymentV1) GetTeamRoles() map[string]([]string) {
+	teamIDsByRole := make(map[string]([]string))
 	for _, team := range d.Teams {
-		if _, ok := teamRolesByID[team.ID]; ok {
-			teamRolesByID[team.ID] = append(teamRolesByID[team.ID],
-				team.Role)
+		if _, ok := teamIDsByRole[team.Role]; ok {
+			teamIDsByRole[team.Role] = append(teamIDsByRole[team.Role],
+				team.ID)
 		} else {
-			teamRolesByID[team.ID] = []string{team.Role}
+			teamIDsByRole[team.Role] = []string{team.ID}
 		}
 	}
-	return teamRolesByID
+	return teamIDsByRole
 }
 
 var validRolesV1 = map[string]struct{}{

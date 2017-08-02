@@ -26,7 +26,7 @@ import (
 	"fmt"
 	"time"
 
-	compose "github.com/compose/gocomposeapi"
+	compose "github.com/benjdewan/gocomposeapi"
 )
 
 type cxnString struct {
@@ -40,10 +40,11 @@ func rescale(cxn *Connection, deploymentID string, deployment Deployment, verbos
 		return fmt.Errorf("Unable get scaling status for '%s': %v",
 			deployment.GetName(), errsOut(errs))
 	}
+
 	if scalings.AllocatedUnits == deployment.GetScaling() {
 		fmt.Printf("Nothing to do for '%s'\n", deployment.GetName())
 		cxn.newDeploymentIDs = append(cxn.newDeploymentIDs, deploymentID)
-		return nil
+		return addTeamRoles(cxn, deploymentID, deployment.GetTeamRoles(), verbose)
 	}
 
 	if verbose {
@@ -62,10 +63,11 @@ func rescale(cxn *Connection, deploymentID string, deployment Deployment, verbos
 	}
 
 	err := cxn.waitOnRecipe(recipe.ID, deployment.GetTimeout(), verbose)
-	if err == nil {
-		cxn.newDeploymentIDs = append(cxn.newDeploymentIDs, recipe.DeploymentID)
+	if err != nil {
+		return err
 	}
-	return err
+	cxn.newDeploymentIDs = append(cxn.newDeploymentIDs, recipe.DeploymentID)
+	return addTeamRoles(cxn, deploymentID, deployment.GetTeamRoles(), verbose)
 }
 
 func provision(cxn *Connection, deployment Deployment, verbose bool) error {
@@ -87,6 +89,11 @@ func provision(cxn *Connection, deployment Deployment, verbose bool) error {
 	if err := cxn.waitOnRecipe(newDeployment.ProvisionRecipeID, deployment.GetTimeout(), verbose); err != nil {
 		return err
 	}
+
+	if err := addTeamRoles(cxn, newDeployment.ID, deployment.GetTeamRoles(), verbose); err != nil {
+		return err
+	}
+
 	fmt.Printf("Provision of '%s' is complete!\n", newDeployment.Name)
 	cxn.newDeploymentIDs = append(cxn.newDeploymentIDs, newDeployment.ID)
 
@@ -111,6 +118,68 @@ func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64, verbose bo
 		time.Sleep(cxn.pollingInterval)
 	}
 	return fmt.Errorf("Timed out waiting on recipe %v to complete", recipeID)
+}
+
+func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]string, verbose bool) error {
+	existingRoles, errs := cxn.client.GetTeamRoles(deploymentID)
+	if len(errs) != 0 {
+		return fmt.Errorf("Unable to retrieve team_role information for '%s':\n%v\n",
+			deploymentID, errsOut(errs))
+	}
+	if len(teamRoles) == 0 {
+		return nil
+	}
+
+	fmt.Printf("Setting up team roles for '%v'\n", deploymentID)
+
+	for role, teams := range teamRoles {
+		existingTeams := []compose.Team{}
+		for _, existingTeamRoles := range *existingRoles {
+			if existingTeamRoles.Name == role {
+				existingTeams = existingTeamRoles.Teams
+				break
+			}
+		}
+
+		for _, teamID := range filterTeams(teams, existingTeams) {
+			params := compose.TeamRoleParams{
+				Name:   role,
+				TeamID: teamID,
+			}
+			if verbose {
+				fmt.Printf("Adding team '%v' to deployment '%v' with role '%v'\n",
+					teamID, deploymentID, role)
+			}
+
+			_, createErrs := cxn.client.CreateTeamRole(deploymentID,
+				params)
+			if createErrs != nil {
+				return fmt.Errorf("Unable to add team '%s' as '%s' to %s:\n%v\n",
+					teamID, role, deploymentID,
+					errsOut(createErrs))
+			}
+		}
+	}
+	return nil
+}
+
+func filterTeams(teams []string, filterList []compose.Team) []string {
+	remainingTeams := []string{}
+	filter := teamListToMap(filterList)
+	for _, team := range teams {
+		if _, ok := filter[team]; !ok {
+			remainingTeams = append(remainingTeams, team)
+		}
+	}
+	return remainingTeams
+}
+
+func teamListToMap(in []compose.Team) map[string]struct{} {
+	out := make(map[string]struct{})
+	for _, item := range in {
+		out[item.ID] = struct{}{}
+	}
+	return out
 }
 
 func deploymentParams(deployment Deployment, cxn *Connection) (compose.DeploymentParams, error) {
