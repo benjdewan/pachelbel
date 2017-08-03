@@ -11,12 +11,17 @@ pachelbel is designed to read yaml configuration files. The YAML objects read in
 
 ```yaml
 # The config is versioned, but only 1 version currently exists.
-version: 1
+config_version: 1
 
 # Compose offers many database types. Pachelbel only supports a subset
 # currently since extracting credentials from connection strings is required
 # and different for every database type
 type: postgresql|redis|rabbitmq|etcd|elastic_search
+
+# By default the latest stable version of the specified databse type is used.
+# Use the 'version' field to specify an older version, or if you want to update
+# an existing deployment to a newer version
+version: 3.2.10
 
 # pachelbel will attempt to map the cluster-name to an ID. If that cluster
 # does not exist or is not visible when using the provided API token, pachelbel

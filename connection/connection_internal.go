@@ -34,54 +34,16 @@ type cxnString struct {
 	ConnectionStrings compose.ConnectionStrings `json:"connection-strings"`
 }
 
-func rescale(cxn *Connection, deploymentID string, deployment Deployment, verbose bool) error {
-	scalings, errs := cxn.client.GetScalings(deploymentID)
-	if len(errs) != 0 {
-		return fmt.Errorf("Unable get scaling status for '%s': %v",
-			deployment.GetName(), errsOut(errs))
-	}
-
-	if scalings.AllocatedUnits == deployment.GetScaling() {
-		fmt.Printf("Nothing to do for '%s'\n", deployment.GetName())
-		cxn.newDeploymentIDs = append(cxn.newDeploymentIDs, deploymentID)
-		return addTeamRoles(cxn, deploymentID, deployment.GetTeamRoles(), verbose)
-	}
-
-	if verbose {
-		fmt.Printf("Rescaling deployment %v:\n\tCurrent scale: %v\n\tDesired scaling: %v\n",
-			deployment.GetName(), scalings.AllocatedUnits, deployment.GetScaling())
-	}
-
-	sParams := compose.ScalingsParams{
-		DeploymentID: deploymentID,
-		Units:        deployment.GetScaling(),
-	}
-	recipe, errs := cxn.client.SetScalings(sParams)
-	if len(errs) != 0 {
-		return fmt.Errorf("Unable to resize '%s': %v\n",
-			deployment.GetName(), errsOut(errs))
-	}
-
-	err := cxn.waitOnRecipe(recipe.ID, deployment.GetTimeout(), verbose)
-	if err != nil {
-		return err
-	}
-	cxn.newDeploymentIDs = append(cxn.newDeploymentIDs, recipe.DeploymentID)
-	return addTeamRoles(cxn, deploymentID, deployment.GetTeamRoles(), verbose)
-}
-
-func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64, verbose bool) error {
+func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64) error {
 	fmt.Printf("Waiting for recipe %v to complete\n", recipeID)
 	start := time.Now()
 	for time.Since(start).Seconds() <= timeout {
 		recipe, errs := cxn.client.GetRecipe(recipeID)
 		if len(errs) != 0 {
-			return fmt.Errorf("Error waiting on recipe %v:\n%v\n", recipeID, errsOut(errs))
+			return fmt.Errorf("Error waiting on recipe %v:\n%v\n",
+				recipeID, errsOut(errs))
 		}
-		if verbose {
-			fmt.Printf("Recipe %v status: %v\n", recipeID,
-				recipe.Status)
-		}
+		fmt.Printf("Recipe %v status: %v\n", recipeID, recipe.Status)
 		if recipe.Status == "complete" {
 			return nil
 		}
@@ -90,7 +52,7 @@ func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64, verbose bo
 	return fmt.Errorf("Timed out waiting on recipe %v to complete", recipeID)
 }
 
-func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]string, verbose bool) error {
+func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]string) error {
 	existingRoles, errs := cxn.client.GetTeamRoles(deploymentID)
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to retrieve team_role information for '%s':\n%v\n",
@@ -116,10 +78,8 @@ func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]s
 				Name:   role,
 				TeamID: teamID,
 			}
-			if verbose {
-				fmt.Printf("Adding team '%v' to deployment '%v' with role '%v'\n",
-					teamID, deploymentID, role)
-			}
+			fmt.Printf("Adding team '%v' to deployment '%v' with role '%v'\n",
+				teamID, deploymentID, role)
 
 			_, createErrs := cxn.client.CreateTeamRole(deploymentID,
 				params)

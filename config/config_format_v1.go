@@ -26,17 +26,18 @@ import (
 )
 
 type DeploymentV1 struct {
-	Version    int         `json:"version"`
-	Type       string      `json:"type"`
-	Cluster    string      `json:"cluster"`
-	Datacenter string      `json:"datacenter"`
-	Name       string      `json:"name"`
-	Notes      string      `json:"notes"`
-	SSL        bool        `json:"ssl"`
-	Teams      [](*TeamV1) `json:"teams"`
-	Scaling    *int        `json:"scaling"`
-	WiredTiger bool        `json:"wired_tiger"`
-	Timeout    *int        `json:"timeout,omitempty"`
+	ConfigVersion int         `json:"config_version"`
+	Version       string      `json:"version"`
+	Type          string      `json:"type"`
+	Cluster       string      `json:"cluster"`
+	Datacenter    string      `json:"datacenter"`
+	Name          string      `json:"name"`
+	Notes         string      `json:"notes"`
+	SSL           bool        `json:"ssl"`
+	Teams         [](*TeamV1) `json:"teams"`
+	Scaling       *int        `json:"scaling"`
+	WiredTiger    bool        `json:"wired_tiger"`
+	Timeout       *int        `json:"timeout,omitempty"`
 }
 
 type TeamV1 struct {
@@ -62,6 +63,10 @@ func (d DeploymentV1) GetCluster() string {
 
 func (d DeploymentV1) GetDatacenter() string {
 	return d.Datacenter
+}
+
+func (d DeploymentV1) GetVersion() string {
+	return d.Version
 }
 
 func (d DeploymentV1) GetScaling() int {
@@ -108,9 +113,9 @@ var validRolesV1 = map[string]struct{}{
 func Validate(d DeploymentV1, input string) error {
 	var buf bytes.Buffer
 	valid := true
-	if d.Version != 1 {
+	if d.ConfigVersion != 1 {
 		valid = false
-		addToBuf(&buf, "Unsupported or missing version field\n")
+		addToBuf(&buf, "Unsupported or missing 'config_version' field\n")
 	}
 
 	if len(d.Type) == 0 {

@@ -26,7 +26,7 @@ import (
 	compose "github.com/benjdewan/gocomposeapi"
 )
 
-func provision(cxn *Connection, deployment Deployment, verbose bool) error {
+func provision(cxn *Connection, deployment Deployment) error {
 	fmt.Printf("Provisioning '%s'...\n", deployment.GetName())
 
 	dParams, err := deploymentParams(deployment, cxn)
@@ -41,11 +41,11 @@ func provision(cxn *Connection, deployment Deployment, verbose bool) error {
 			deployment.GetName(), errsOut(errs))
 	}
 
-	if err := cxn.waitOnRecipe(newDeployment.ProvisionRecipeID, deployment.GetTimeout(), verbose); err != nil {
+	if err := cxn.waitOnRecipe(newDeployment.ProvisionRecipeID, deployment.GetTimeout()); err != nil {
 		return err
 	}
 
-	if err := addTeamRoles(cxn, newDeployment.ID, deployment.GetTeamRoles(), verbose); err != nil {
+	if err := addTeamRoles(cxn, newDeployment.ID, deployment.GetTeamRoles()); err != nil {
 		return err
 	}
 
@@ -72,6 +72,10 @@ func deploymentParams(deployment Deployment, cxn *Connection) (compose.Deploymen
 				deployment.GetName(), deployment.GetCluster())
 		}
 		dParams.ClusterID = clusterID
+	}
+
+	if len(deployment.GetVersion()) > 0 {
+		dParams.Version = deployment.GetVersion()
 	}
 
 	if deployment.GetWiredTiger() {

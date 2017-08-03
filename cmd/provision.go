@@ -53,14 +53,14 @@ func doProvision(cmd *cobra.Command, args []string) {
 	}
 
 	cxn, err := connection.Init(viper.GetString("api-key"),
-		viper.GetInt("polling-interval"), verbose)
+		viper.GetInt("polling-interval"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	failFast := viper.GetBool("fail-fast")
 	for _, deployment := range deployments {
-		err = connection.Provision(cxn, deployment, verbose)
+		err = connection.Provision(cxn, deployment)
 		if err != nil {
 			if failFast {
 				log.Fatal(err)

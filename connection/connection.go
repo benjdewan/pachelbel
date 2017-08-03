@@ -40,6 +40,7 @@ type Deployment interface {
 	GetTeamRoles() map[string]([]string)
 	GetTimeout() float64
 	GetType() string
+	GetVersion() string
 	GetWiredTiger() bool
 }
 
@@ -52,7 +53,7 @@ type Connection struct {
 	pollingInterval   time.Duration
 }
 
-func Init(apiKey string, pollingInterval int, verbose bool) (*Connection, error) {
+func Init(apiKey string, pollingInterval int) (*Connection, error) {
 	cxn := &Connection{
 		newDeploymentIDs: []string{},
 		pollingInterval:  time.Duration(pollingInterval) * time.Second,
@@ -79,11 +80,11 @@ func Init(apiKey string, pollingInterval int, verbose bool) (*Connection, error)
 	return cxn, err
 }
 
-func Provision(cxn *Connection, deployment Deployment, verbose bool) error {
+func Provision(cxn *Connection, deployment Deployment) error {
 	if existing, ok := cxn.deploymentsByName[deployment.GetName()]; ok {
-		return rescale(cxn, existing.ID, deployment, verbose)
+		return update(cxn, existing.ID, deployment)
 	}
-	return provision(cxn, deployment, verbose)
+	return provision(cxn, deployment)
 }
 
 func (cxn *Connection) ConnectionStringsYAML(outFile string, verbose bool) error {
