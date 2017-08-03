@@ -70,36 +70,6 @@ func rescale(cxn *Connection, deploymentID string, deployment Deployment, verbos
 	return addTeamRoles(cxn, deploymentID, deployment.GetTeamRoles(), verbose)
 }
 
-func provision(cxn *Connection, deployment Deployment, verbose bool) error {
-	fmt.Printf("Provisioning '%s' in '%s'...\n", deployment.GetName(),
-		deployment.GetCluster())
-
-	dParams, err := deploymentParams(deployment, cxn)
-	if err != nil {
-		return err
-	}
-
-	//This needs to be wrapped in retry logic
-	newDeployment, errs := cxn.client.CreateDeployment(dParams)
-	if errs != nil {
-		return fmt.Errorf("Unable to create '%s': %s\n",
-			deployment.GetName(), errsOut(errs))
-	}
-
-	if err := cxn.waitOnRecipe(newDeployment.ProvisionRecipeID, deployment.GetTimeout(), verbose); err != nil {
-		return err
-	}
-
-	if err := addTeamRoles(cxn, newDeployment.ID, deployment.GetTeamRoles(), verbose); err != nil {
-		return err
-	}
-
-	fmt.Printf("Provision of '%s' is complete!\n", newDeployment.Name)
-	cxn.newDeploymentIDs = append(cxn.newDeploymentIDs, newDeployment.ID)
-
-	return nil
-}
-
 func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64, verbose bool) error {
 	fmt.Printf("Waiting for recipe %v to complete\n", recipeID)
 	start := time.Now()
@@ -180,37 +150,6 @@ func teamListToMap(in []compose.Team) map[string]struct{} {
 		out[item.ID] = struct{}{}
 	}
 	return out
-}
-
-func deploymentParams(deployment Deployment, cxn *Connection) (compose.DeploymentParams, error) {
-	dParams := compose.DeploymentParams{
-		Name:         deployment.GetName(),
-		AccountID:    cxn.accountID,
-		DatabaseType: deployment.GetType(),
-		Notes:        deployment.GetNotes(),
-	}
-
-	clusterID, ok := cxn.clusterIDsByName[deployment.GetCluster()]
-	if !ok {
-		return dParams, fmt.Errorf("Unable to provsion '%s'. The specified cluster name, '%s' does not map to a known cluster.",
-			deployment.GetName(), deployment.GetCluster())
-	}
-
-	dParams.ClusterID = clusterID
-
-	if deployment.GetWiredTiger() {
-		dParams.WiredTiger = true
-	}
-
-	if deployment.GetScaling() > 1 {
-		dParams.Units = deployment.GetScaling()
-	}
-
-	if deployment.GetSSL() {
-		dParams.SSL = true
-	}
-
-	return dParams, nil
 }
 
 func fetchClusters(client *compose.Client) (map[string]string, error) {

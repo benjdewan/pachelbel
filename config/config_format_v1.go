@@ -29,6 +29,7 @@ type DeploymentV1 struct {
 	Version    int         `json:"version"`
 	Type       string      `json:"type"`
 	Cluster    string      `json:"cluster"`
+	Datacenter string      `json:"datacenter"`
 	Name       string      `json:"name"`
 	Notes      string      `json:"notes"`
 	SSL        bool        `json:"ssl"`
@@ -57,6 +58,10 @@ func (d DeploymentV1) GetType() string {
 
 func (d DeploymentV1) GetCluster() string {
 	return d.Cluster
+}
+
+func (d DeploymentV1) GetDatacenter() string {
+	return d.Datacenter
 }
 
 func (d DeploymentV1) GetScaling() int {
@@ -107,14 +112,22 @@ func Validate(d DeploymentV1, input string) error {
 		valid = false
 		addToBuf(&buf, "Unsupported or missing version field\n")
 	}
+
 	if len(d.Type) == 0 {
 		valid = false
 		addToBuf(&buf, "The 'type' field is required\n")
 	}
-	if len(d.Cluster) == 0 {
+
+	if len(d.Cluster) == 0 && len(d.Datacenter) == 0 {
 		valid = false
-		addToBuf(&buf, "The 'cluster' field is required\n")
+		addToBuf(&buf, "Either a 'cluster' or 'datacenter' must be provided for every deployment\n")
 	}
+
+	if len(d.Cluster) > 0 && len(d.Datacenter) > 0 {
+		valid = false
+		addToBuf(&buf, "A 'cluster' and 'datacenter' cannot be provided for a single deployment\n")
+	}
+
 	if len(d.Name) == 0 {
 		valid = false
 		addToBuf(&buf, "The 'name' field is required\n")

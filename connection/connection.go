@@ -32,6 +32,7 @@ import (
 
 type Deployment interface {
 	GetCluster() string
+	GetDatacenter() string
 	GetName() string
 	GetNotes() string
 	GetScaling() int
