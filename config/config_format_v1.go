@@ -110,6 +110,18 @@ var validRolesV1 = map[string]struct{}{
 	"manager":   struct{}{},
 }
 
+var validTypes = map[string]struct{}{
+	"mongodb":       struct{}{},
+	"rethinkdb":     struct{}{},
+	"elasticsearch": struct{}{},
+	"redis":         struct{}{},
+	"postgresql":    struct{}{},
+	"rabbitmq":      struct{}{},
+	"etcd":          struct{}{},
+	"mysql":         struct{}{},
+	"janusgraph":    struct{}{},
+}
+
 func Validate(d DeploymentV1, input string) error {
 	var buf bytes.Buffer
 	valid := true
@@ -121,6 +133,11 @@ func Validate(d DeploymentV1, input string) error {
 	if len(d.Type) == 0 {
 		valid = false
 		addToBuf(&buf, "The 'type' field is required\n")
+	}
+
+	if _, ok := validTypes[d.Type]; !ok {
+		valid = false
+		addToBuf(&buf, fmt.Sprintf("'%s' is not a valid deployment type.", d.Type))
 	}
 
 	if len(d.Cluster) == 0 && len(d.Datacenter) == 0 {

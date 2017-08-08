@@ -28,6 +28,7 @@ windows-build: test-build
 
 test-build: pre-build
 	$(GOPATH)/bin/gometalinter cmd/ connection/ main.go
+	go test -v github.com/benjdewan/pachelbel/config
 
 clean:
 	rm -rf $(GOPATH)/bin
