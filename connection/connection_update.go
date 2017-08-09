@@ -61,7 +61,7 @@ func updateScalings(cxn *Connection, depID string, newScale int, timeout float64
 	if existingScalings.AllocatedUnits == newScale {
 		fmt.Printf("Existing deployment '%s' is the expected size '%v'\n",
 			depID, newScale)
-		cxn.newDeploymentIDs[depID] = struct{}{}
+		cxn.newDeploymentIDs.Store(depID, struct{}{})
 		return nil
 	}
 
@@ -83,7 +83,7 @@ func updateScalings(cxn *Connection, depID string, newScale int, timeout float64
 	if err != nil {
 		return err
 	}
-	cxn.newDeploymentIDs[recipe.DeploymentID] = struct{}{}
+	cxn.newDeploymentIDs.Store(recipe.DeploymentID, struct{}{})
 	return nil
 }
 
@@ -128,6 +128,6 @@ func updateVersion(cxn *Connection, depID, newVersion string, timeout float64) e
 	if err != nil {
 		return err
 	}
-	cxn.newDeploymentIDs[recipe.DeploymentID] = struct{}{}
+	cxn.newDeploymentIDs.Store(recipe.DeploymentID, struct{}{})
 	return nil
 }

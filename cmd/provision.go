@@ -64,9 +64,9 @@ func doProvision(cmd *cobra.Command, args []string) {
 	}
 	flush(errQueue)
 
-	if err := cxn.ConnectionStringsYAML(viper.GetString("output"), verbose); err != nil {
-		log.Fatalf("Unable to write connection strings: %v", err)
-	}
+	errQueue = queue.New(0)
+	cxn.ConnectionStringsYAML(viper.GetString("output"), verbose, errQueue)
+	flush(errQueue)
 }
 
 func init() {
