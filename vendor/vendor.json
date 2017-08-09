@@ -21,6 +21,12 @@
 			"revisionTime": "2017-03-27T23:54:44Z"
 		},
 		{
+			"checksumSHA1": "/MBntFRUTjxLNt1ciAqbuIzkcnc=",
+			"path": "github.com/golang-collections/go-datastructures/queue",
+			"revision": "59788d5eb2591d3497ffb8fafed2f16fe00e7775",
+			"revisionTime": "2015-02-11T16:07:25Z"
+		},
+		{
 			"checksumSHA1": "7JBkp3EZoc0MSbiyWfzVhO4RYoY=",
 			"path": "github.com/hashicorp/hcl",
 			"revision": "392dba7d905ed5d04a5794ba89f558b27e2ba1ca",

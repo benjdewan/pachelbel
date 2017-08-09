@@ -24,27 +24,31 @@ import (
 	"fmt"
 
 	compose "github.com/benjdewan/gocomposeapi"
+	"github.com/golang-collections/go-datastructures/queue"
 )
 
-func update(cxn *Connection, depID string, dep Deployment) error {
+func update(cxn *Connection, depID string, dep Deployment, errQueue *queue.Queue) {
 	timeout := dep.GetTimeout()
 	if err := updateScalings(cxn, depID, dep.GetScaling(), timeout); err != nil {
-		return err
+		enqueue(errQueue, err)
+		return
 	}
 
 	if version := dep.GetVersion(); len(version) > 0 {
 		if err := updateVersion(cxn, depID, dep.GetVersion(), timeout); err != nil {
-			return err
+			enqueue(errQueue, err)
+			return
 		}
 	} else {
 		fmt.Printf("Not updating version of '%v'\n", depID)
 	}
 
 	if err := addTeamRoles(cxn, depID, dep.GetTeamRoles()); err != nil {
-		return err
+		enqueue(errQueue, err)
+		return
 	}
 
-	return nil
+	return
 }
 
 func updateScalings(cxn *Connection, depID string, newScale int, timeout float64) error {

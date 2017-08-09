@@ -25,6 +25,7 @@ import (
 
 	"github.com/benjdewan/pachelbel/config"
 	"github.com/benjdewan/pachelbel/connection"
+	"github.com/golang-collections/go-datastructures/queue"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -57,17 +58,14 @@ func doProvision(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	errQueue := queue.New(int64(len(deployments)))
 	for _, deployment := range deployments {
-		err = connection.Provision(cxn, deployment)
-		if err != nil {
-			log.Printf("%v. Continuing...", err)
-		}
+		connection.Provision(cxn, deployment, errQueue)
 	}
+	flush(errQueue)
 
 	if err := cxn.ConnectionStringsYAML(viper.GetString("output"), verbose); err != nil {
-		log.Fatalf("Unable to create connection string output file:\n%v",
-			err)
+		log.Fatalf("Unable to write connection strings: %v", err)
 	}
 }
 
@@ -86,4 +84,22 @@ func init() {
 	viper.BindPFlag("cluster", provisionCmd.Flags().Lookup("cluster"))
 	viper.BindPFlag("output", provisionCmd.Flags().Lookup("output"))
 	viper.BindPFlag("polling-interval", provisionCmd.Flags().Lookup("polling-interval"))
+}
+
+func flush(errQueue *queue.Queue) {
+	if !errQueue.Empty() {
+		items, qErr := errQueue.Get(errQueue.Len())
+		if qErr != nil {
+			panic(qErr)
+		}
+		for _, unknown := range items {
+			switch item := unknown.(type) {
+			case error:
+				log.Printf("Error: %v", item)
+			default:
+				log.Fatalf("Only errors should be in the error queue. Found %v", item)
+			}
+		}
+	}
+	errQueue.Dispose()
 }

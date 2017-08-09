@@ -28,6 +28,7 @@ import (
 
 	compose "github.com/benjdewan/gocomposeapi"
 	"github.com/ghodss/yaml"
+	"github.com/golang-collections/go-datastructures/queue"
 )
 
 type Deployment interface {
@@ -80,11 +81,12 @@ func Init(apiKey string, pollingInterval int) (*Connection, error) {
 	return cxn, err
 }
 
-func Provision(cxn *Connection, deployment Deployment) error {
+func Provision(cxn *Connection, deployment Deployment, errQueue *queue.Queue) {
 	if existing, ok := cxn.deploymentsByName[deployment.GetName()]; ok {
-		return update(cxn, existing.ID, deployment)
+		update(cxn, existing.ID, deployment, errQueue)
+		return
 	}
-	return provision(cxn, deployment)
+	provision(cxn, deployment, errQueue)
 }
 
 func (cxn *Connection) ConnectionStringsYAML(outFile string, verbose bool) error {

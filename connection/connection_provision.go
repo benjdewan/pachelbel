@@ -24,35 +24,38 @@ import (
 	"fmt"
 
 	compose "github.com/benjdewan/gocomposeapi"
+	"github.com/golang-collections/go-datastructures/queue"
 )
 
-func provision(cxn *Connection, deployment Deployment) error {
+func provision(cxn *Connection, deployment Deployment, errQueue *queue.Queue) {
 	fmt.Printf("Provisioning '%s'...\n", deployment.GetName())
 
 	dParams, err := deploymentParams(deployment, cxn)
 	if err != nil {
-		return err
+		return
 	}
 
 	//This needs to be wrapped in retry logic
 	newDeployment, errs := cxn.client.CreateDeployment(dParams)
-	if errs != nil {
-		return fmt.Errorf("Unable to create '%s': %s\n",
-			deployment.GetName(), errsOut(errs))
+	if len(errs) != 0 {
+		enqueue(errQueue, fmt.Errorf("Unable to create '%s': %s\n", deployment.GetName(), errsOut(errs)))
+		return
 	}
 
 	if err := cxn.waitOnRecipe(newDeployment.ProvisionRecipeID, deployment.GetTimeout()); err != nil {
-		return err
+		enqueue(errQueue, err)
+		return
 	}
 
 	if err := addTeamRoles(cxn, newDeployment.ID, deployment.GetTeamRoles()); err != nil {
-		return err
+		enqueue(errQueue, err)
+		return
 	}
 
 	fmt.Printf("Provision of '%s' is complete!\n", newDeployment.Name)
 	cxn.newDeploymentIDs[newDeployment.ID] = struct{}{}
 
-	return nil
+	return
 }
 
 func deploymentParams(deployment Deployment, cxn *Connection) (compose.DeploymentParams, error) {

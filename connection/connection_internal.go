@@ -21,12 +21,13 @@
 package connection
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	compose "github.com/benjdewan/gocomposeapi"
+	"github.com/golang-collections/go-datastructures/queue"
 )
 
 func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64) error {
@@ -162,15 +163,16 @@ func createClient(apiKey string) (*compose.Client, error) {
 	return compose.NewClient(apiKey)
 }
 
-func errsOut(errs []error) string {
-	var buf bytes.Buffer
-	for _, err := range errs {
-		if _, wErr := buf.WriteString(err.Error()); wErr != nil {
-			panic(wErr)
-		}
-		if _, wErr := buf.WriteString("\n"); wErr != nil {
-			panic(wErr)
-		}
+func enqueue(q *queue.Queue, item interface{}) {
+	if err := q.Put(item); err != nil {
+		panic(err)
 	}
-	return buf.String()
+}
+
+func errsOut(errs []error) string {
+	msgs := []string{}
+	for _, err := range errs {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "\n")
 }
