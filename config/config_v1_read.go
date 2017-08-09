@@ -24,6 +24,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -87,28 +88,31 @@ func readDir(root string, verbose bool) ([]DeploymentV1, error) {
 }
 
 func readFile(path string, verbose bool) ([]DeploymentV1, error) {
-	fmt.Printf("Reading configuration from %v\n", path)
 	deployments := []DeploymentV1{}
 	file, err := os.Open(path)
 	if err != nil {
 		return deployments, err
 	}
-	scanner := bufio.NewScanner(file)
-	scanner.Split(splitYamlObjects)
-	for scanner.Scan() {
-		var deployment DeploymentV1
-		blob := scanner.Bytes()
-		if err := yaml.Unmarshal(blob, &deployment); err != nil {
-			return deployments, err
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			panic(closeErr)
 		}
-		if err := Validate(deployment, string(blob)); err != nil {
+	}()
+
+	return readConfigs(file)
+}
+
+func readConfigs(r io.Reader) ([]DeploymentV1, error) {
+	deployments := []DeploymentV1{}
+
+	scanner := bufio.NewScanner(r)
+	scanner.Split(splitYAMLObjects)
+	for scanner.Scan() {
+		deployment, err := readConfig(scanner.Bytes())
+		if err != nil {
 			return deployments, err
 		}
 		if filtered(deployment) {
-			if verbose {
-				fmt.Printf("Not updating the '%s' deployment. Its cluster has been filtered out\n",
-					deployment.Name)
-			}
 			continue
 		}
 		deployments = append(deployments, deployment)
@@ -116,7 +120,16 @@ func readFile(path string, verbose bool) ([]DeploymentV1, error) {
 	return deployments, nil
 }
 
-func splitYamlObjects(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func readConfig(blob []byte) (DeploymentV1, error) {
+	var deployment DeploymentV1
+	if err := yaml.Unmarshal(blob, &deployment); err != nil {
+		return deployment, err
+	}
+	err := Validate(deployment, string(blob))
+	return deployment, err
+}
+
+func splitYAMLObjects(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}
