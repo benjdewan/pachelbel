@@ -58,13 +58,9 @@ func doProvision(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	failFast := viper.GetBool("fail-fast")
 	for _, deployment := range deployments {
 		err = connection.Provision(cxn, deployment)
 		if err != nil {
-			if failFast {
-				log.Fatal(err)
-			}
 			log.Printf("%v. Continuing...", err)
 		}
 	}
@@ -77,11 +73,6 @@ func doProvision(cmd *cobra.Command, args []string) {
 
 func init() {
 	RootCmd.AddCommand(provisionCmd)
-	provisionCmd.Flags().BoolP("fail-fast", "f", false,
-		`By default pachelbel provision does not stop until it has processed
-			every deployment provided. With --fail-fast set the
-			first deployment that fails will terminate
-			processing.`)
 	provisionCmd.Flags().StringSliceP("cluster", "c", []string{},
 		`By default pachelbel provision will provision every deployment
 			provided. Use this flag to limit pachelbel to only
@@ -92,7 +83,6 @@ func init() {
 		`The polling interval, in seconds, to use when
 			waiting for a provisioning recipe to complete`)
 
-	viper.BindPFlag("fail-fast", provisionCmd.Flags().Lookup("fail-fast"))
 	viper.BindPFlag("cluster", provisionCmd.Flags().Lookup("cluster"))
 	viper.BindPFlag("output", provisionCmd.Flags().Lookup("output"))
 	viper.BindPFlag("polling-interval", provisionCmd.Flags().Lookup("polling-interval"))
