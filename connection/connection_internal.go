@@ -29,11 +29,6 @@ import (
 	compose "github.com/benjdewan/gocomposeapi"
 )
 
-type cxnString struct {
-	Name              string                    `json:"name"`
-	ConnectionStrings compose.ConnectionStrings `json:"connection-strings"`
-}
-
 func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64) error {
 	fmt.Printf("Waiting for recipe %v to complete\n", recipeID)
 	start := time.Now()

@@ -49,13 +49,13 @@ type Connection struct {
 	accountID         string
 	clusterIDsByName  map[string]string
 	deploymentsByName map[string](*compose.Deployment)
-	newDeploymentIDs  []string
+	newDeploymentIDs  map[string]struct{}
 	pollingInterval   time.Duration
 }
 
 func Init(apiKey string, pollingInterval int) (*Connection, error) {
 	cxn := &Connection{
-		newDeploymentIDs: []string{},
+		newDeploymentIDs: make(map[string]struct{}),
 		pollingInterval:  time.Duration(pollingInterval) * time.Second,
 	}
 	var err error
@@ -90,8 +90,8 @@ func Provision(cxn *Connection, deployment Deployment) error {
 func (cxn *Connection) ConnectionStringsYAML(outFile string, verbose bool) error {
 	fmt.Printf("Writing connection strings to '%v'\n", outFile)
 
-	var buf bytes.Buffer
-	for _, deploymentID := range cxn.newDeploymentIDs {
+	yamlObjects := []([]byte){}
+	for deploymentID := range cxn.newDeploymentIDs {
 		if verbose {
 			fmt.Printf("Fetching latest metadata for deployment '%v'\n",
 				deploymentID)
@@ -101,21 +101,13 @@ func (cxn *Connection) ConnectionStringsYAML(outFile string, verbose bool) error
 			return fmt.Errorf("Unable to resolve deployment '%v':\n%v\n",
 				deploymentID, errsOut(errs))
 		}
-		yml, err := yaml.Marshal(cxnString{
-			Name:              deployment.Name,
-			ConnectionStrings: deployment.Connection,
-		})
+		cxnStrings := make(map[string][]string)
+		cxnStrings[deployment.Name] = deployment.Connection.Direct
+		yamlObj, err := yaml.Marshal(cxnStrings)
 		if err != nil {
 			return err
 		}
-		if _, err := buf.Write(yml); err != nil {
-			// This should never happen
-			panic(err)
-		}
-		if _, err := buf.WriteString("---\n"); err != nil {
-			// This should never happen
-			panic(err)
-		}
+		yamlObjects = append(yamlObjects, yamlObj)
 	}
 
 	handle, err := os.Create(outFile)
@@ -127,6 +119,6 @@ func (cxn *Connection) ConnectionStringsYAML(outFile string, verbose bool) error
 			panic(closeErr)
 		}
 	}()
-	_, err = handle.Write(buf.Bytes())
+	_, err = handle.Write(bytes.Join(yamlObjects, []byte("\n---\n")))
 	return err
 }

@@ -50,7 +50,7 @@ func provision(cxn *Connection, deployment Deployment) error {
 	}
 
 	fmt.Printf("Provision of '%s' is complete!\n", newDeployment.Name)
-	cxn.newDeploymentIDs = append(cxn.newDeploymentIDs, newDeployment.ID)
+	cxn.newDeploymentIDs[newDeployment.ID] = struct{}{}
 
 	return nil
 }
