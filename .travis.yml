@@ -9,20 +9,16 @@ git:
   depth: 5
 
 before_deploy:
-  - mv $GOPATH/bin/pachelbel ${TRAVIS_BUILD_DIR}
-  - tar czf ${TRAVIS_BUILD_DIR}/pachelbel_linux_amd64.tgz pachelbel
-  - mv $GOPATH/bin/darwin_amd64/pachelbel ${TRAVIS_BUILD_DIR}
-  - tar czf ${TRAVIS_BUILD_DIR}/pachelbel_darwin_amd64.tgz pachelbel
-  - mv $GOPATH/bin/windows_amd64/pachelbel.exe ${TRAVIS_BUILD_DIR}
-  - zip ${TRAVIS_BUILD_DIR}/pachelbel_windows_amd64.zip ./pachelbel.exe
+- sha256sum pachelbel* > checksums.sha256
 
 deploy:
   skip_cleanup: true
   provider: releases
   file:
-      - ${TRAVIS_BUILD_DIR}/pachelbel_linux_amd64.tgz
-      - ${TRAVIS_BUILD_DIR}/pachelbel_darwin_amd64.tgz
-      - ${TRAVIS_BUILD_DIR}/pachelbel_windows_amd64.zip
+      - pachelbel-linux
+      - pachelbel-darwin
+      - pachelbel-windows.exe
+      - checksums.sha256
   api_key:
     secure: UdI8QXj4ftVKoE2poKVC3NKr2xGgVHdC5+/o5I3C7VXKibI98Go/t6TfWkkOBH8fzYjj5hSZ+npjeopZCJUrSezRL1mtC7gyF5h+ExvcgkJjJNv/VhFQpopddJUifHiDXk/oGSV/cXsZR0N0IGfX0QB2/Y6DiLY5bAuZ6hSMHgOr8jsFKPKZoMYOFImdLr9Ducln1aPgNQO/HlGVrGwDsCUBazD4onUm7fMBNXcBUvnSLVas3izTda+NYYlX2aQncSrqvuQFi7sK+ny4RwX2tCW2m2/5WVk5oHTmhzr9B4FIfYi5pyzPKywvUNwJgkepLCbhkZVx3Uh7nN/rZCiRhBPa3qiVXihexi0ydbwnJm+d5vjbFreK2fzjGHEDT2jEUfgVzQiV6XE8Cch5yVT+gfg43E+nUF70Uja063ti8/9GvA27h0c1dg+bu5tz8p/lB8YIv3f0NeYG3odAzTH/mfSgV5S8l5ztGqMw2G192ZdvAPnSI0GMutoa4d1tdzrTTi8n9iY9sCJdrMTtuGK2hzUBRNUlFjw5+mT+WQIGdUdgi/A2Q4NmY+I7NEyeWwPdqB1MHhjqdIXjqWY+HWxparCaUgdg2rkA4z+VvVDVnCc2lqKYeiV9x1cvdFpAFiyGg1Yg6KluZoialh/xwNq761JsTZGcNWCpRrFkYjbs8PA=
   on:

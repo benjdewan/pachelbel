@@ -1,34 +1,48 @@
-LDFLAGS="-X github.com/benjdewan/pachelbel/cmd.version=$(shell git describe --tags || echo DEV-BUILD)"
+# Constants
+VERSION := $(shell git describe --tags || echo DEV-BUILD)
+LDFLAGS := "-X github.com/benjdewan/pachelbel/cmd.version=$(VERSION)"
+CGO_ENABLED := 0
+GOARCH := amd64
 
-.PHONY: all clean
+# Targets/Source
+TARGETS := pachelbel-linux pachelbel-windows.exe pachelbel-darwin
+SOURCE := $(shell find . -type f -iname '*.go')
 
-all: post-build
+# Executables
+GOVENDOR := $(GOPATH)/bin/govendor
+GOMETALINTER := $(GOPATH)/bin/gometalinter
 
-pre-build:
+# Sanity Check
 ifndef GOPATH
     $(error GOPATH must be defined to build this project)
 endif
-ifdef GOBIN
-    $(error To do cross-compilation GOBIN cannot be set)
-endif
+
+default: setup lint test $(TARGETS)
+.PHONY: all
+
+all: $(TARGETS)
+.PHONY: all
+
+setup:
 	go get -u github.com/alecthomas/gometalinter github.com/kardianos/govendor
-	$(GOPATH)/bin/gometalinter --install
-	$(GOPATH)/bin/govendor sync
+	$(GOMETALINTER) --install
+	$(GOVENDOR) sync
+.PHONY: setup
 
-post-build: linux-build macos-build windows-build
+pachelbel-%.exe: $(SOURCE)
+	GOOS=$* $(GOVENDOR) build -ldflags $(LDFLAGS) -o "$@"
 
-linux-build: test-build
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go install -ldflags $(LDFLAGS) github.com/benjdewan/pachelbel
+pachelbel-%: $(SOURCE)
+	GOOS=$* $(GOVENDOR) build -ldflags $(LDFLAGS) -o "$@"
 
-macos-build: test-build
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go install -ldflags $(LDFLAGS) github.com/benjdewan/pachelbel
+lint:
+	$(GOMETALINTER) cmd/ connection/ main.go
+.PHONY: lint
 
-windows-build: test-build
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go install -ldflags $(LDFLAGS) github.com/benjdewan/pachelbel
-
-test-build: pre-build
-	$(GOPATH)/bin/gometalinter cmd/ connection/ main.go
-	go test -v github.com/benjdewan/pachelbel/config
+test:
+	$(GOVENDOR) test -v +local
+.PHONY: test
 
 clean:
-	rm -rf $(GOPATH)/bin
+	rm -rf $(TARGETS)
+.PHONY: clean
