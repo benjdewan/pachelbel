@@ -22,6 +22,7 @@ package connection
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	compose "github.com/benjdewan/gocomposeapi"
@@ -37,6 +38,7 @@ type Deployment interface {
 	GetScaling() int
 	GetSSL() bool
 	GetTeamRoles() map[string]([]string)
+	TeamEntryCount() int
 	GetTimeout() float64
 	GetType() string
 	GetVersion() string
@@ -44,18 +46,25 @@ type Deployment interface {
 }
 
 type Connection struct {
+	// The length of the longest deployment name. This is used for
+	// formatting the progress bars
+	MaxNameLength int
+
+	// Internal fields
 	client            *compose.Client
 	accountID         string
 	clusterIDsByName  map[string]string
-	deploymentsByName map[string](*compose.Deployment)
+	deploymentsByName *syncmap.Map
 	newDeploymentIDs  *syncmap.Map
 	pollingInterval   time.Duration
 }
 
 func Init(apiKey string, pollingInterval int) (*Connection, error) {
 	cxn := &Connection{
-		newDeploymentIDs: &syncmap.Map{},
-		pollingInterval:  time.Duration(pollingInterval) * time.Second,
+		newDeploymentIDs:  &syncmap.Map{},
+		deploymentsByName: &syncmap.Map{},
+		pollingInterval:   time.Duration(pollingInterval) * time.Second,
+		MaxNameLength:     24,
 	}
 	var err error
 
@@ -74,17 +83,23 @@ func Init(apiKey string, pollingInterval int) (*Connection, error) {
 		return cxn, err
 	}
 
-	cxn.deploymentsByName, err = fetchDeployments(cxn.client)
+	err = fetchDeployments(cxn)
 
 	return cxn, err
 }
 
-func Provision(cxn *Connection, deployment Deployment, errQueue *queue.Queue) {
-	if existing, ok := cxn.deploymentsByName[deployment.GetName()]; ok {
-		update(cxn, existing.ID, deployment, errQueue)
-		return
+func Provision(cxn *Connection, deployment Deployment, errQueue *queue.Queue, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if item, ok := cxn.deploymentsByName.Load(deployment.GetName()); ok {
+		switch existing := item.(type) {
+		case *compose.Deployment:
+			update(cxn, existing.ID, deployment, errQueue)
+		default:
+			panic("Only compose.Deployment structs should be in this map")
+		}
+	} else {
+		provision(cxn, deployment, errQueue)
 	}
-	provision(cxn, deployment, errQueue)
 }
 
 func (cxn *Connection) ConnectionStringsYAML(outFile string, errQueue *queue.Queue) {

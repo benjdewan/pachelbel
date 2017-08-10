@@ -25,33 +25,49 @@ import (
 
 	compose "github.com/benjdewan/gocomposeapi"
 	"github.com/golang-collections/go-datastructures/queue"
+	"github.com/gosuri/uiprogress"
 )
 
 func update(cxn *Connection, depID string, dep Deployment, errQueue *queue.Queue) {
 	timeout := dep.GetTimeout()
-	if err := updateScalings(cxn, depID, dep.GetScaling(), timeout); err != nil {
+	bar, pollLength := newBar(timeout, cxn.pollingInterval, 2,
+		dep.TeamEntryCount(), cxn.MaxNameLength, dep.GetName(),
+		"updating")
+
+	scaling := dep.GetScaling()
+	if err := updateScalings(cxn, depID, scaling, timeout, bar); err != nil {
 		enqueue(errQueue, err)
 		return
 	}
+	setProgress(bar, pollLength)
 
-	if version := dep.GetVersion(); len(version) > 0 {
-		if err := updateVersion(cxn, depID, dep.GetVersion(), timeout); err != nil {
+	version := dep.GetVersion()
+	if len(version) > 0 {
+		if err := updateVersion(cxn, depID, version, timeout, bar); err != nil {
 			enqueue(errQueue, err)
 			return
 		}
-	} else {
-		fmt.Printf("Not updating version of '%v'\n", depID)
 	}
+	setProgress(bar, 2*pollLength)
 
-	if err := addTeamRoles(cxn, depID, dep.GetTeamRoles()); err != nil {
+	if err := addTeamRoles(cxn, depID, dep.GetTeamRoles(), bar); err != nil {
 		enqueue(errQueue, err)
 		return
 	}
+	setProgress(bar, bar.Total)
 
+	// Changing versions and sizes can change the deployment ID. Ensure
+	// we have the latest/live value
+	updatedDeployment, errs := cxn.client.GetDeploymentByName(dep.GetName())
+	if len(errs) != 0 {
+		enqueue(errQueue, errsOut(errs))
+		return
+	}
+	cxn.newDeploymentIDs.Store(updatedDeployment.ID, struct{}{})
 	return
 }
 
-func updateScalings(cxn *Connection, depID string, newScale int, timeout float64) error {
+func updateScalings(cxn *Connection, depID string, newScale int, timeout float64, b *uiprogress.Bar) error {
 	existingScalings, errs := cxn.client.GetScalings(depID)
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to get current scaling for '%s':\n%v",
@@ -61,7 +77,6 @@ func updateScalings(cxn *Connection, depID string, newScale int, timeout float64
 	if existingScalings.AllocatedUnits == newScale {
 		fmt.Printf("Existing deployment '%s' is the expected size '%v'\n",
 			depID, newScale)
-		cxn.newDeploymentIDs.Store(depID, struct{}{})
 		return nil
 	}
 
@@ -79,15 +94,14 @@ func updateScalings(cxn *Connection, depID string, newScale int, timeout float64
 			depID, errsOut(errs))
 	}
 
-	err := cxn.waitOnRecipe(recipe.ID, timeout)
+	err := cxn.waitOnRecipe(recipe.ID, timeout, b)
 	if err != nil {
 		return err
 	}
-	cxn.newDeploymentIDs.Store(recipe.DeploymentID, struct{}{})
 	return nil
 }
 
-func updateVersion(cxn *Connection, depID, newVersion string, timeout float64) error {
+func updateVersion(cxn *Connection, depID, newVersion string, timeout float64, b *uiprogress.Bar) error {
 	deployment, errs := cxn.client.GetDeployment(depID)
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to fetch current deployment information for '%s':\n%v",
@@ -124,10 +138,9 @@ func updateVersion(cxn *Connection, depID, newVersion string, timeout float64) e
 			depID, newVersion, errsOut(errs))
 	}
 
-	err := cxn.waitOnRecipe(recipe.ID, timeout)
+	err := cxn.waitOnRecipe(recipe.ID, timeout, b)
 	if err != nil {
 		return err
 	}
-	cxn.newDeploymentIDs.Store(recipe.DeploymentID, struct{}{})
 	return nil
 }

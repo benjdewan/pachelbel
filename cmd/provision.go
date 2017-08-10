@@ -22,10 +22,12 @@ package cmd
 
 import (
 	"log"
+	"sync"
 
 	"github.com/benjdewan/pachelbel/config"
 	"github.com/benjdewan/pachelbel/connection"
 	"github.com/golang-collections/go-datastructures/queue"
+	"github.com/gosuri/uiprogress"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -61,11 +63,18 @@ func doProvision(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	cxn.MaxNameLength = config.MaxNameLength(deployments)
+
 	errQueue := queue.New(int64(len(deployments)))
+	var wg sync.WaitGroup
+	wg.Add(len(deployments))
+	uiprogress.Start()
 	for _, deployment := range deployments {
-		connection.Provision(cxn, deployment, errQueue)
+		go connection.Provision(cxn, deployment, errQueue, &wg)
 	}
+	wg.Wait()
 	flush(errQueue)
+	uiprogress.Stop()
 
 	errQueue = queue.New(0)
 	cxn.ConnectionStringsYAML(viper.GetString("output"), errQueue)

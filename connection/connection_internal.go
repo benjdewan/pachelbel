@@ -28,10 +28,10 @@ import (
 
 	compose "github.com/benjdewan/gocomposeapi"
 	"github.com/golang-collections/go-datastructures/queue"
+	"github.com/gosuri/uiprogress"
 )
 
-func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64) error {
-	fmt.Printf("Waiting for recipe %v to complete\n", recipeID)
+func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64, bar *uiprogress.Bar) error {
 	start := time.Now()
 	for time.Since(start).Seconds() <= timeout {
 		recipe, errs := cxn.client.GetRecipe(recipeID)
@@ -39,16 +39,16 @@ func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64) error {
 			return fmt.Errorf("Error waiting on recipe %v:\n%v\n",
 				recipeID, errsOut(errs))
 		}
-		fmt.Printf("Recipe %v status: %v\n", recipeID, recipe.Status)
 		if recipe.Status == "complete" {
 			return nil
 		}
 		time.Sleep(cxn.pollingInterval)
+		bar.Incr()
 	}
 	return fmt.Errorf("Timed out waiting on recipe %v to complete", recipeID)
 }
 
-func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]string) error {
+func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]string, bar *uiprogress.Bar) error {
 	existingRoles, errs := cxn.client.GetTeamRoles(deploymentID)
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to retrieve team_role information for '%s':\n%v\n",
@@ -84,6 +84,7 @@ func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]s
 					teamID, role, deploymentID,
 					errsOut(createErrs))
 			}
+			bar.Incr()
 		}
 	}
 	return nil
@@ -127,23 +128,21 @@ func fetchClusters(client *compose.Client) (map[string]string, error) {
 	return clusterIDsByName, nil
 }
 
-func fetchDeployments(client *compose.Client) (map[string](*compose.Deployment), error) {
-	deploymentsByName := make(map[string](*compose.Deployment))
-	deployments, errs := client.GetDeployments()
+func fetchDeployments(cxn *Connection) error {
+	deployments, errs := cxn.client.GetDeployments()
 	if len(errs) != 0 {
-		return deploymentsByName, fmt.Errorf("Failed to get deployments:\n%s",
-			errsOut(errs))
+		return fmt.Errorf("Failed to get deployments:\n%s", errsOut(errs))
 	}
 
 	if deployments == nil {
 		// This is not necessarily an error.
-		return deploymentsByName, nil
+		return nil
 	}
 
 	for _, deployment := range *deployments {
-		deploymentsByName[deployment.Name] = &deployment
+		cxn.deploymentsByName.Store(deployment.Name, &deployment)
 	}
-	return deploymentsByName, nil
+	return nil
 }
 
 func fetchAccountID(client *compose.Client) (string, error) {
@@ -161,6 +160,36 @@ func createClient(apiKey string) (*compose.Client, error) {
 	}
 
 	return compose.NewClient(apiKey)
+}
+
+func newBar(timeout float64, interval time.Duration, pollCount, offset int, nameLength int, name, action string) (*uiprogress.Bar, int) {
+	pollLength := int(timeout / float64(interval/time.Second))
+	length := pollCount*pollLength + offset
+
+	bar := uiprogress.AddBar(length).
+		AppendCompleted().
+		PrependElapsed().
+		PrependFunc(func(b *uiprogress.Bar) string {
+			return fmt.Sprintf("%s : %s",
+				ljust(name, nameLength),
+				rjust(action, 12))
+		})
+
+	return bar, pollLength
+}
+
+func ljust(str string, width int) string {
+	return fmt.Sprintf(fmt.Sprintf("%%-%ds", width), str)
+}
+
+func rjust(str string, width int) string {
+	return fmt.Sprintf(fmt.Sprintf("%%%ds", width), str)
+}
+
+func setProgress(bar *uiprogress.Bar, value int) {
+	for bar.Current() < value {
+		bar.Incr()
+	}
 }
 
 func enqueue(q *queue.Queue, item interface{}) {

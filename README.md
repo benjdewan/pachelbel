@@ -46,8 +46,8 @@ ssl: true
 # new deployments, scaling existing deployments &c.) to complete. If no recipes
 # are triggered, no waiting will occur.
 #
-# If this field is not set a default timeout of 900 seconds (15 minutes) is used.
-timeout: 300
+# If this field is not set a default timeout of 300 seconds (5 minutes) is used.
+timeout: 900
 
 # If you want to make this deployment visible to anyone other than the user that
 # created it, you should create a team via the web interface, grab the team ID, and

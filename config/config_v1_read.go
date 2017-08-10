@@ -62,6 +62,16 @@ func ReadFiles(args []string, verbose bool) ([]DeploymentV1, error) {
 	return deployments, nil
 }
 
+func MaxNameLength(deployments []DeploymentV1) int {
+	max := 0
+	for _, deployment := range deployments {
+		if length := len(deployment.Name); length > max {
+			max = length
+		}
+	}
+	return max
+}
+
 func readDir(root string, verbose bool) ([]DeploymentV1, error) {
 	deployments := []DeploymentV1{}
 	walkErr := filepath.Walk(root, func(path string, info os.FileInfo, readErr error) error {

@@ -78,7 +78,7 @@ func (d DeploymentV1) GetScaling() int {
 
 func (d DeploymentV1) GetTimeout() float64 {
 	if d.Timeout == nil {
-		return float64(900)
+		return float64(300)
 	}
 	return float64(*d.Timeout)
 }
@@ -89,6 +89,10 @@ func (d DeploymentV1) GetWiredTiger() bool {
 
 func (d DeploymentV1) GetSSL() bool {
 	return d.SSL
+}
+
+func (d DeploymentV1) TeamEntryCount() int {
+	return len(d.Teams)
 }
 
 func (d DeploymentV1) GetTeamRoles() map[string]([]string) {

@@ -28,12 +28,15 @@ import (
 )
 
 func provision(cxn *Connection, deployment Deployment, errQueue *queue.Queue) {
-	fmt.Printf("Provisioning '%s'...\n", deployment.GetName())
+	bar, pollLength := newBar(deployment.GetTimeout(), cxn.pollingInterval,
+		1, deployment.TeamEntryCount()+2, cxn.MaxNameLength,
+		deployment.GetName(), "provisioning")
 
 	dParams, err := deploymentParams(deployment, cxn)
 	if err != nil {
 		return
 	}
+	bar.Incr()
 
 	//This needs to be wrapped in retry logic
 	newDeployment, errs := cxn.client.CreateDeployment(dParams)
@@ -41,19 +44,20 @@ func provision(cxn *Connection, deployment Deployment, errQueue *queue.Queue) {
 		enqueue(errQueue, fmt.Errorf("Unable to create '%s': %s\n", deployment.GetName(), errsOut(errs)))
 		return
 	}
+	bar.Incr()
 
-	if err := cxn.waitOnRecipe(newDeployment.ProvisionRecipeID, deployment.GetTimeout()); err != nil {
+	if err := cxn.waitOnRecipe(newDeployment.ProvisionRecipeID, deployment.GetTimeout(), bar); err != nil {
 		enqueue(errQueue, err)
 		return
 	}
+	setProgress(bar, 2+pollLength)
 
-	if err := addTeamRoles(cxn, newDeployment.ID, deployment.GetTeamRoles()); err != nil {
+	if err := addTeamRoles(cxn, newDeployment.ID, deployment.GetTeamRoles(), bar); err != nil {
 		enqueue(errQueue, err)
 		return
 	}
-
-	fmt.Printf("Provision of '%s' is complete!\n", newDeployment.Name)
 	cxn.newDeploymentIDs.Store(newDeployment.ID, struct{}{})
+	setProgress(bar, bar.Total)
 
 	return
 }
