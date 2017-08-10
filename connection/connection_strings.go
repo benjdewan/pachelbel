@@ -53,6 +53,6 @@ func writeConnectionStrings(cxnStrings [][]byte, file string) error {
 		}
 	}()
 
-	_, err = handle.Write(bytes.Join(cxnStrings, []byte("\n---\n")))
+	_, err = handle.Write(bytes.Join(cxnStrings, []byte("\n")))
 	return err
 }
