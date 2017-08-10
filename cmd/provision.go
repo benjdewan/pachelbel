@@ -45,6 +45,9 @@ configuration no actions are taken.`,
 }
 
 func doProvision(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		log.Fatal("The 'provision' command requires at least one configuration file or directory as input")
+	}
 	config.BuildClusterFilter(viper.GetStringSlice("cluster"))
 
 	verbose := viper.GetBool("verbose")
