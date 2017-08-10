@@ -68,7 +68,7 @@ func doProvision(cmd *cobra.Command, args []string) {
 	flush(errQueue)
 
 	errQueue = queue.New(0)
-	cxn.ConnectionStringsYAML(viper.GetString("output"), verbose, errQueue)
+	cxn.ConnectionStringsYAML(viper.GetString("output"), errQueue)
 	flush(errQueue)
 }
 

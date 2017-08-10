@@ -21,13 +21,10 @@
 package connection
 
 import (
-	"bytes"
 	"fmt"
-	"os"
 	"time"
 
 	compose "github.com/benjdewan/gocomposeapi"
-	"github.com/ghodss/yaml"
 	"github.com/golang-collections/go-datastructures/queue"
 	"golang.org/x/sync/syncmap"
 )
@@ -90,7 +87,7 @@ func Provision(cxn *Connection, deployment Deployment, errQueue *queue.Queue) {
 	provision(cxn, deployment, errQueue)
 }
 
-func (cxn *Connection) ConnectionStringsYAML(outFile string, verbose bool, errQueue *queue.Queue) {
+func (cxn *Connection) ConnectionStringsYAML(outFile string, errQueue *queue.Queue) {
 	fmt.Printf("Writing connection strings to '%v'\n", outFile)
 
 	yamlObjects := []([]byte){}
@@ -103,20 +100,7 @@ func (cxn *Connection) ConnectionStringsYAML(outFile string, verbose bool, errQu
 			panic(fmt.Sprintf("Only deploymentIDs should be in this map"))
 		}
 
-		if verbose {
-			fmt.Printf("Fetching latest metadata for deployment '%v'\n",
-				deploymentID)
-		}
-		deployment, errs := cxn.client.GetDeployment(deploymentID)
-		if len(errs) != 0 {
-			enqueue(errQueue,
-				fmt.Errorf("Unable to resolve deployment '%v':\n%v\n",
-					deploymentID, errsOut(errs)))
-			return false
-		}
-		cxnStrings := make(map[string][]string)
-		cxnStrings[deployment.Name] = deployment.Connection.Direct
-		yamlObj, err := yaml.Marshal(cxnStrings)
+		yamlObj, err := connectionStringsForDeployment(cxn, deploymentID)
 		if err != nil {
 			enqueue(errQueue, err)
 			return false
@@ -125,21 +109,8 @@ func (cxn *Connection) ConnectionStringsYAML(outFile string, verbose bool, errQu
 		return true
 	})
 
-	handle, err := os.Create(outFile)
-	if err != nil {
+	if err := writeConnectionStrings(yamlObjects, outFile); err != nil {
 		enqueue(errQueue, err)
 		return
 	}
-	defer func() {
-		if closeErr := handle.Close(); closeErr != nil {
-			// Our fd became invalid, or the underlying
-			// syscall was interrupted
-			panic(closeErr)
-		}
-	}()
-	_, err = handle.Write(bytes.Join(yamlObjects, []byte("\n---\n")))
-	if err != nil {
-		enqueue(errQueue, err)
-	}
-	return
 }
