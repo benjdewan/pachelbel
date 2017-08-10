@@ -132,6 +132,8 @@ func (cxn *Connection) ConnectionStringsYAML(outFile string, verbose bool, errQu
 	}
 	defer func() {
 		if closeErr := handle.Close(); closeErr != nil {
+			// Our fd became invalid, or the underlying
+			// syscall was interrupted
 			panic(closeErr)
 		}
 	}()

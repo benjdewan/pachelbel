@@ -21,8 +21,8 @@
 package config
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
 )
 
 type DeploymentV1 struct {
@@ -123,57 +123,62 @@ var validTypes = map[string]struct{}{
 }
 
 func Validate(d DeploymentV1, input string) error {
-	var buf bytes.Buffer
+	errs := []string{}
 	valid := true
 	if d.ConfigVersion != 1 {
 		valid = false
-		addToBuf(&buf, "Unsupported or missing 'config_version' field\n")
+		errs = append(errs, "Unsupported or missing 'config_version' field\n")
 	}
 
 	if len(d.Type) == 0 {
 		valid = false
-		addToBuf(&buf, "The 'type' field is required\n")
+		errs = append(errs, "The 'type' field is required\n")
 	}
 
 	if _, ok := validTypes[d.Type]; !ok {
 		valid = false
-		addToBuf(&buf, fmt.Sprintf("'%s' is not a valid deployment type.", d.Type))
+		errs = append(errs,
+			fmt.Sprintf("'%s' is not a valid deployment type.", d.Type))
 	}
 
 	if len(d.Cluster) == 0 && len(d.Datacenter) == 0 {
 		valid = false
-		addToBuf(&buf, "Either a 'cluster' or 'datacenter' must be provided for every deployment\n")
+		errs = append(errs,
+			"Either a 'cluster' or 'datacenter' must be provided for every deployment\n")
 	}
 
 	if len(d.Cluster) > 0 && len(d.Datacenter) > 0 {
 		valid = false
-		addToBuf(&buf, "A 'cluster' and 'datacenter' cannot be provided for a single deployment\n")
+		errs = append(errs,
+			"A 'cluster' and 'datacenter' cannot be provided for a single deployment\n")
 	}
 
 	if len(d.Name) == 0 {
 		valid = false
-		addToBuf(&buf, "The 'name' field is required\n")
+		errs = append(errs, "The 'name' field is required\n")
 	}
 
 	if d.Scaling != nil && *d.Scaling < 1 {
 		valid = false
-		addToBuf(&buf, "The 'scaling' field must be an integer >= 1\n")
+		errs = append(errs, "The 'scaling' field must be an integer >= 1\n")
 	}
 
 	if d.WiredTiger && d.Type != "mongodb" {
 		valid = false
-		addToBuf(&buf, "The 'wired_tiger' field is only valid for MongoDB\n")
+		errs = append(errs,
+			"The 'wired_tiger' field is only valid for the 'mongodb' deployment type\n")
 	}
 
 	if d.Teams != nil {
 		for _, team := range d.Teams {
 			if len(team.ID) == 0 {
 				valid = false
-				addToBuf(&buf, "Every team entry requires an ID\n")
+				errs = append(errs,
+					"Every team entry requires an ID\n")
 			}
 			if _, ok := validRolesV1[team.Role]; !ok {
 				valid = false
-				addToBuf(&buf,
+				errs = append(errs,
 					fmt.Sprintf("'%s' is not a valid team role\n",
 						team.Role))
 			}
@@ -185,11 +190,5 @@ func Validate(d DeploymentV1, input string) error {
 	}
 
 	return fmt.Errorf("Errors occured while parsing the following deployment object:\n%s\nErrors:\n%s",
-		input, buf.String())
-}
-
-func addToBuf(buf *bytes.Buffer, msg string) {
-	if _, err := (*buf).WriteString(msg); err != nil {
-		panic(err)
-	}
+		input, strings.Join(errs, "\n"))
 }

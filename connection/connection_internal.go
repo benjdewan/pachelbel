@@ -165,6 +165,8 @@ func createClient(apiKey string) (*compose.Client, error) {
 
 func enqueue(q *queue.Queue, item interface{}) {
 	if err := q.Put(item); err != nil {
+		// This only happens if we are using a Queue after Dispose()
+		// has been called on it.
 		panic(err)
 	}
 }

@@ -95,6 +95,8 @@ func readFile(path string, verbose bool) ([]DeploymentV1, error) {
 	}
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
+			// Our filepointer has become invalid or the
+			// underlying syscall was interrupted
 			panic(closeErr)
 		}
 	}()

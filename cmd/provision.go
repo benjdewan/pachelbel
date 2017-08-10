@@ -93,6 +93,8 @@ func flush(errQueue *queue.Queue) {
 	if !errQueue.Empty() {
 		items, qErr := errQueue.Get(errQueue.Len())
 		if qErr != nil {
+			// Get() only returns an error if Dispose() has already
+			// been called on the queue.
 			panic(qErr)
 		}
 		for _, unknown := range items {
