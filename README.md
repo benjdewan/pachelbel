@@ -53,8 +53,10 @@ timeout: 300
 # created it, you should create a team via the web interface, grab the team ID, and
 # then specify it here along with the roles that team should have:
 teams:
-    - { id: "123456789", role: "admin" }
-    - { id: "123456789", role: "developer" }
+  - id: "123456789"
+    role: "admin"
+  - id: "123456789"
+    role: "developer"
 
 # WiredTiger is a storage engine option for MongoDB. Setting this field for
 # any other type of deployment will throw an error
