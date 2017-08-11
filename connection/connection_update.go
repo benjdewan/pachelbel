@@ -134,7 +134,7 @@ func updateVersion(cxn *Connection, depID, newVersion string, timeout float64, b
 
 	recipe, errs := cxn.client.UpgradeVersionForDeployment(depID, newVersion)
 	if errs != nil {
-		return fmt.Errorf("Unable to upgrade '%s' to verison '%s':\n%v",
+		return fmt.Errorf("Unable to upgrade '%s' to version '%s':\n%v",
 			depID, newVersion, errsOut(errs))
 	}
 

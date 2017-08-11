@@ -30,6 +30,8 @@ import (
 	"golang.org/x/sync/syncmap"
 )
 
+// Deployment is the interface for deployment objects that
+// the Connection struct expects as input to Provision()
 type Deployment interface {
 	GetCluster() string
 	GetDatacenter() string
@@ -45,6 +47,8 @@ type Deployment interface {
 	GetWiredTiger() bool
 }
 
+// Connection is the struct that manages the state of provisioning
+// work done in Compose during an invocation of pachelbel.
 type Connection struct {
 	// The length of the longest deployment name. This is used for
 	// formatting the progress bars
@@ -59,6 +63,9 @@ type Connection struct {
 	pollingInterval   time.Duration
 }
 
+// Init creates a Connection struct that is used for provisioning
+// Compose deployments. This struct is shared across every
+// Provision call.
 func Init(apiKey string, pollingInterval int) (*Connection, error) {
 	cxn := &Connection{
 		newDeploymentIDs:  &syncmap.Map{},
@@ -88,6 +95,9 @@ func Init(apiKey string, pollingInterval int) (*Connection, error) {
 	return cxn, err
 }
 
+// Provision will create a new deployment or update an existing deployment
+// to the size and version specified as well as ensure every team role listed
+// is applied to that deployment.
 func Provision(cxn *Connection, deployment Deployment, errQueue *queue.Queue, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if item, ok := cxn.deploymentsByName.Load(deployment.GetName()); ok {
@@ -102,6 +112,8 @@ func Provision(cxn *Connection, deployment Deployment, errQueue *queue.Queue, wg
 	}
 }
 
+// ConnectionStringsYAML writes out the connection strings for all the
+// provisioned deployments as a YAML object to the provided file.
 func (cxn *Connection) ConnectionStringsYAML(outFile string, errQueue *queue.Queue) {
 	fmt.Printf("Writing connection strings to '%v'\n", outFile)
 

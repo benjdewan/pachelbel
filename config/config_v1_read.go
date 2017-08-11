@@ -31,6 +31,9 @@ import (
 	"github.com/ghodss/yaml"
 )
 
+// BuildClusterFilter accepts a list of cluster names to filter
+// configuration data. Only deployments to clusters in the filter
+// are returned by ReadFiles()
 func BuildClusterFilter(clusters []string) {
 	clusterFilter = make(map[string]struct{})
 
@@ -39,6 +42,10 @@ func BuildClusterFilter(clusters []string) {
 	}
 }
 
+// ReadFiles works through a list of arguments to parse configuration
+// data into deployment object. Both configuration files and directories
+// of configuration files are valid arguments, but directories are not
+// read recursively, only immediate child files are parsed.
 func ReadFiles(args []string, verbose bool) ([]DeploymentV1, error) {
 	deployments := []DeploymentV1{}
 	for _, path := range args {
@@ -62,6 +69,8 @@ func ReadFiles(args []string, verbose bool) ([]DeploymentV1, error) {
 	return deployments, nil
 }
 
+// MaxNameLength returns the length of the longest deployment name. This is
+// very useful for formatting progress bars.
 func MaxNameLength(deployments []DeploymentV1) int {
 	max := 0
 	for _, deployment := range deployments {

@@ -25,6 +25,8 @@ import (
 	"strings"
 )
 
+// DeploymentV1 is the structure corresponding to version 1 of
+// pachelbel's configuration YAML
 type DeploymentV1 struct {
 	ConfigVersion int         `json:"config_version"`
 	Version       string      `json:"version"`
@@ -40,35 +42,47 @@ type DeploymentV1 struct {
 	Timeout       *int        `json:"timeout,omitempty"`
 }
 
+// TeamV1 is the structure corresponding to version 1 of pachelbel's team_roles
+// configuration YAML
 type TeamV1 struct {
 	ID   string `json:"id"`
 	Role string `json:"role"`
 }
 
+// GetName returns the name of the deployment
 func (d DeploymentV1) GetName() string {
 	return d.Name
 }
 
+// GetNotes returns any notes associated with the deployment
 func (d DeploymentV1) GetNotes() string {
 	return d.Notes
 }
 
+// GetType returns the type of deployment
 func (d DeploymentV1) GetType() string {
 	return d.Type
 }
 
+// GetCluster returns the cluster name the deployment should live in or
+// nothing if the deployment should go to a datacenter
 func (d DeploymentV1) GetCluster() string {
 	return d.Cluster
 }
 
+// GetDatacenter returns the datacenter name the deployment should live in
+// or nothing if the deployment should live in a cluster
 func (d DeploymentV1) GetDatacenter() string {
 	return d.Datacenter
 }
 
+// GetVersion returns the database version the deployment should be deploying
 func (d DeploymentV1) GetVersion() string {
 	return d.Version
 }
 
+// GetScaling returns the database scaling value for the deployment, or 1
+// if it does not exist.
 func (d DeploymentV1) GetScaling() int {
 	if d.Scaling == nil {
 		return 1
@@ -76,6 +90,8 @@ func (d DeploymentV1) GetScaling() int {
 	return *d.Scaling
 }
 
+// GetTimeout returns the maximum timeout in seconds to wait on recipes for
+// this deployment. The default is 300 seconds
 func (d DeploymentV1) GetTimeout() float64 {
 	if d.Timeout == nil {
 		return float64(300)
@@ -83,18 +99,25 @@ func (d DeploymentV1) GetTimeout() float64 {
 	return float64(*d.Timeout)
 }
 
+// GetWiredTiger is true if the deployment type is 'mongodb' and
+// the wired_tiger engine has been enabled.
 func (d DeploymentV1) GetWiredTiger() bool {
 	return d.Type == "mongodb" && d.WiredTiger
 }
 
+// GetSSL returns true if SSL should be enabled for a deployment.
 func (d DeploymentV1) GetSSL() bool {
 	return d.SSL
 }
 
+// TeamEntryCount returns the number of team roles to apply to
+// a given deployment.
 func (d DeploymentV1) TeamEntryCount() int {
 	return len(d.Teams)
 }
 
+// GetTeamRoles returns a a map of arrays of team roles to apply keyed by
+// the team ID for those roles.
 func (d DeploymentV1) GetTeamRoles() map[string]([]string) {
 	teamIDsByRole := make(map[string]([]string))
 	for _, team := range d.Teams {
@@ -109,90 +132,109 @@ func (d DeploymentV1) GetTeamRoles() map[string]([]string) {
 }
 
 var validRolesV1 = map[string]struct{}{
-	"admin":     struct{}{},
-	"developer": struct{}{},
-	"manager":   struct{}{},
+	"admin":     {},
+	"developer": {},
+	"manager":   {},
 }
 
 var validTypes = map[string]struct{}{
-	"mongodb":       struct{}{},
-	"rethinkdb":     struct{}{},
-	"elasticsearch": struct{}{},
-	"redis":         struct{}{},
-	"postgresql":    struct{}{},
-	"rabbitmq":      struct{}{},
-	"etcd":          struct{}{},
-	"mysql":         struct{}{},
-	"janusgraph":    struct{}{},
+	"mongodb":       {},
+	"rethinkdb":     {},
+	"elasticsearch": {},
+	"redis":         {},
+	"postgresql":    {},
+	"rabbitmq":      {},
+	"etcd":          {},
+	"mysql":         {},
+	"janusgraph":    {},
 }
 
+// Validate returns an error enumerating any and all issues with the
+// provided deployment object to help with debugging.
 func Validate(d DeploymentV1, input string) error {
 	errs := []string{}
-	valid := true
-	if d.ConfigVersion != 1 {
-		valid = false
-		errs = append(errs, "Unsupported or missing 'config_version' field\n")
+
+	errs = validateConfigVersion(d.ConfigVersion, errs)
+	errs = validateType(d.Type, errs)
+	errs = validateDeploymentTarget(d.Cluster, d.Datacenter, errs)
+	errs = validateName(d.Name, errs)
+	errs = validateScaling(d.Scaling, errs)
+	errs = validateWiredTiger(d.WiredTiger, d.Type, errs)
+	errs = validateTeams(d.Teams, errs)
+
+	if len(errs) == 0 {
+		return nil
 	}
 
-	if len(d.Type) == 0 {
-		valid = false
-		errs = append(errs, "The 'type' field is required\n")
-	}
+	return fmt.Errorf("Errors occurred while parsing the following deployment object:\n%s\nErrors:\n%s",
+		input, strings.Join(errs, "\n"))
+}
 
-	if _, ok := validTypes[d.Type]; !ok {
-		valid = false
+func validateConfigVersion(version int, errs []string) []string {
+	if version != 1 {
 		errs = append(errs,
-			fmt.Sprintf("'%s' is not a valid deployment type.", d.Type))
+			"Unsupported or missing 'config_version' field\n")
 	}
+	return errs
+}
 
-	if len(d.Cluster) == 0 && len(d.Datacenter) == 0 {
-		valid = false
+func validateType(deploymentType string, errs []string) []string {
+	if len(deploymentType) == 0 {
+		errs = append(errs, "The 'type' field is required\n")
+	} else if _, ok := validTypes[deploymentType]; !ok {
+		errs = append(errs,
+			fmt.Sprintf("'%s' is not a valid deployment type.", deploymentType))
+	}
+	return errs
+}
+
+func validateDeploymentTarget(cluster, datacenter string, errs []string) []string {
+	if len(cluster) == 0 && len(datacenter) == 0 {
 		errs = append(errs,
 			"Either a 'cluster' or 'datacenter' must be provided for every deployment\n")
-	}
-
-	if len(d.Cluster) > 0 && len(d.Datacenter) > 0 {
-		valid = false
+	} else if len(cluster) > 0 && len(datacenter) > 0 {
 		errs = append(errs,
 			"A 'cluster' and 'datacenter' cannot be provided for a single deployment\n")
 	}
 
-	if len(d.Name) == 0 {
-		valid = false
+	return errs
+}
+
+func validateName(name string, errs []string) []string {
+	if len(name) == 0 {
 		errs = append(errs, "The 'name' field is required\n")
 	}
+	return errs
+}
 
-	if d.Scaling != nil && *d.Scaling < 1 {
-		valid = false
+func validateScaling(scaling *int, errs []string) []string {
+	if scaling != nil && *scaling < 1 {
 		errs = append(errs, "The 'scaling' field must be an integer >= 1\n")
 	}
+	return errs
+}
 
-	if d.WiredTiger && d.Type != "mongodb" {
-		valid = false
+func validateWiredTiger(wiredTiger bool, deploymentType string, errs []string) []string {
+	if wiredTiger && deploymentType != "mongodb" {
 		errs = append(errs,
 			"The 'wired_tiger' field is only valid for the 'mongodb' deployment type\n")
 	}
+	return errs
+}
 
-	if d.Teams != nil {
-		for _, team := range d.Teams {
-			if len(team.ID) == 0 {
-				valid = false
-				errs = append(errs,
-					"Every team entry requires an ID\n")
-			}
-			if _, ok := validRolesV1[team.Role]; !ok {
-				valid = false
-				errs = append(errs,
-					fmt.Sprintf("'%s' is not a valid team role\n",
-						team.Role))
-			}
+func validateTeams(teams []*TeamV1, errs []string) []string {
+	if teams == nil {
+		return errs
+	}
+	for _, team := range teams {
+		if len(team.ID) == 0 {
+			errs = append(errs, "Every team entry requires an ID\n")
 		}
+		if _, ok := validRolesV1[team.Role]; ok {
+			continue
+		}
+		errs = append(errs,
+			fmt.Sprintf("'%s' is not a valid team role\n", team.Role))
 	}
-
-	if valid {
-		return nil
-	}
-
-	return fmt.Errorf("Errors occured while parsing the following deployment object:\n%s\nErrors:\n%s",
-		input, strings.Join(errs, "\n"))
+	return errs
 }

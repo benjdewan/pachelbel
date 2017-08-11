@@ -33,11 +33,11 @@ func TestValidate(t *testing.T) {
 		err := Validate(test.config, "ignored")
 		if test.valid {
 			if err != nil {
-				t.Errorf("Test #%d: Expected\n%v\nto be valid, but saw: %v",
+				t.Errorf("Test #%d: Expected\n%v\n to be valid, but saw: %v",
 					i, test.config, err)
 			}
 		} else if err == nil {
-			t.Errorf("Test #%d: Expected\n%v\nto be invalid, but there was no error thrown",
+			t.Errorf("Test #%d: Expected\n%v\n to be invalid, but there was no error thrown",
 				i, test.config)
 		}
 	}
@@ -90,7 +90,7 @@ func TestReadConfig(t *testing.T) {
 
 var (
 	validScaling   int = 2
-	invalidScaling int = 0
+	invalidScaling int
 )
 
 var configValidateTests = []struct {
@@ -267,7 +267,7 @@ var splitYAMLObjectsTests = []struct {
 
 var emptyClusterFilter = make(map[string]struct{})
 var oneClusterFilter = map[string]struct{}{
-	"do-not-update": struct{}{},
+	"do-not-update": {},
 }
 
 var filteredTests = []struct {
