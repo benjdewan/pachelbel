@@ -33,6 +33,7 @@ import (
 // Deployment is the interface for deployment objects that
 // the Connection struct expects as input to Provision()
 type Deployment interface {
+	ClusterDeployment() bool
 	GetCluster() string
 	GetDatacenter() string
 	GetName() string
@@ -58,6 +59,7 @@ type Connection struct {
 	client            *compose.Client
 	accountID         string
 	clusterIDsByName  map[string]string
+	datacenters       map[string]struct{}
 	deploymentsByName *syncmap.Map
 	newDeploymentIDs  *syncmap.Map
 	pollingInterval   time.Duration
@@ -86,6 +88,11 @@ func Init(apiKey string, pollingInterval int) (*Connection, error) {
 	}
 
 	cxn.clusterIDsByName, err = fetchClusters(cxn.client)
+	if err != nil {
+		return cxn, err
+	}
+
+	cxn.datacenters, err = fetchDatacenters(cxn.client)
 	if err != nil {
 		return cxn, err
 	}

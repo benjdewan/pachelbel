@@ -70,6 +70,11 @@ func (d DeploymentV1) GetCluster() string {
 	return d.Cluster
 }
 
+// ClusterDeployment returns true if this deployment should be inside a cluster
+func (d DeploymentV1) ClusterDeployment() bool {
+	return len(d.Cluster) > 0
+}
+
 // GetDatacenter returns the datacenter name the deployment should live in
 // or nothing if the deployment should live in a cluster
 func (d DeploymentV1) GetDatacenter() string {

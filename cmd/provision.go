@@ -51,6 +51,7 @@ func doProvision(cmd *cobra.Command, args []string) {
 		log.Fatal("The 'provision' command requires at least one configuration file or directory as input")
 	}
 	config.BuildClusterFilter(viper.GetStringSlice("cluster"))
+	config.BuildDatacenterFilter(viper.GetStringSlice("datacenter"))
 
 	verbose := viper.GetBool("verbose")
 	deployments, err := config.ReadFiles(args, verbose)
@@ -86,7 +87,16 @@ func init() {
 	provisionCmd.Flags().StringSliceP("cluster", "c", []string{},
 		`By default pachelbel provision will provision every deployment
 			provided. Use this flag to limit pachelbel to only
-			process deployments to the specified cluster`)
+			process deployments to the specified cluster.
+
+			This flag can be repeated to specify multiple clusters`)
+	provisionCmd.Flags().StringSliceP("datacenter", "d", []string{},
+		`By default pachelbel provision will provision every
+			deployment provided. Use this flat to limit pachelbel
+			to only process deployments to the specified
+			datacenter.
+
+			This flag can be repeated to specify multiple datacenters.`)
 	provisionCmd.Flags().StringP("output", "o", "./connection-strings.yml",
 		`The file to write connection string information to.`)
 	provisionCmd.Flags().IntP("polling-interval", "p", 5,
@@ -94,6 +104,7 @@ func init() {
 			waiting for a provisioning recipe to complete`)
 
 	viper.BindPFlag("cluster", provisionCmd.Flags().Lookup("cluster"))
+	viper.BindPFlag("datacenter", provisionCmd.Flags().Lookup("datacenter"))
 	viper.BindPFlag("output", provisionCmd.Flags().Lookup("output"))
 	viper.BindPFlag("polling-interval", provisionCmd.Flags().Lookup("polling-interval"))
 }

@@ -113,13 +113,9 @@ func fetchClusters(client *compose.Client) (map[string]string, error) {
 	clusterIDsByName := make(map[string]string)
 
 	clusters, errs := client.GetClusters()
-	if len(errs) != 0 {
+	if len(errs) != 0 || clusters == nil {
 		return clusterIDsByName, fmt.Errorf("Failed to get cluster information:\n%s",
 			errsOut(errs))
-	}
-
-	if clusters == nil {
-		return clusterIDsByName, fmt.Errorf("No clusters found")
 	}
 
 	for _, cluster := range *clusters {
@@ -128,15 +124,26 @@ func fetchClusters(client *compose.Client) (map[string]string, error) {
 	return clusterIDsByName, nil
 }
 
-func fetchDeployments(cxn *Connection) error {
-	deployments, errs := cxn.client.GetDeployments()
-	if len(errs) != 0 {
-		return fmt.Errorf("Failed to get deployments:\n%s", errsOut(errs))
+func fetchDatacenters(client *compose.Client) (map[string]struct{}, error) {
+	datacenters := make(map[string]struct{})
+
+	datacenterObjs, errs := client.GetDatacenters()
+	if len(errs) != 0 || datacenterObjs == nil {
+		return datacenters, fmt.Errorf("Failed to get datacenter information:\n%s",
+			errsOut(errs))
 	}
 
-	if deployments == nil {
-		// This is not necessarily an error.
-		return nil
+	for _, datacenter := range *datacenterObjs {
+		datacenters[datacenter.Slug] = struct{}{}
+	}
+
+	return datacenters, nil
+}
+
+func fetchDeployments(cxn *Connection) error {
+	deployments, errs := cxn.client.GetDeployments()
+	if len(errs) != 0 || deployments == nil {
+		return fmt.Errorf("Failed to get deployments:\n%s", errsOut(errs))
 	}
 
 	for _, deployment := range *deployments {

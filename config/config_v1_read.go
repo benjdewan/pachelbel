@@ -42,6 +42,17 @@ func BuildClusterFilter(clusters []string) {
 	}
 }
 
+// BuildDatacenterFilter accepts a list of datacenter slugs to filter
+// configuration data by. Only deployments to datacenters in the filter
+// are returned by ReadFiles()
+func BuildDatacenterFilter(datacenters []string) {
+	datacenterFilter = make(map[string]struct{})
+
+	for _, datacenter := range datacenters {
+		datacenterFilter[datacenter] = struct{}{}
+	}
+}
+
 // ReadFiles works through a list of arguments to parse configuration
 // data into deployment object. Both configuration files and directories
 // of configuration files are valid arguments, but directories are not
@@ -167,11 +178,29 @@ func splitYAMLObjects(data []byte, atEOF bool) (advance int, token []byte, err e
 }
 
 var clusterFilter map[string]struct{}
+var datacenterFilter map[string]struct{}
 
 func filtered(deployment DeploymentV1) bool {
+	if len(deployment.Cluster) > 0 {
+		// At this point the deployment has already been validated, so
+		// we can safely assume this means a cluster deployment
+		return filterByCluster(deployment)
+	}
+	return filterByDatacenter(deployment)
+}
+
+func filterByCluster(d DeploymentV1) bool {
 	if len(clusterFilter) == 0 {
 		return false
 	}
-	_, ok := clusterFilter[deployment.Cluster]
+	_, ok := clusterFilter[d.Cluster]
+	return !ok
+}
+
+func filterByDatacenter(d DeploymentV1) bool {
+	if len(datacenterFilter) == 0 {
+		return false
+	}
+	_, ok := datacenterFilter[d.Datacenter]
 	return !ok
 }

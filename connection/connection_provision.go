@@ -70,15 +70,20 @@ func deploymentParams(deployment Deployment, cxn *Connection) (compose.Deploymen
 		Notes:        deployment.GetNotes(),
 	}
 
-	if len(deployment.GetDatacenter()) > 0 {
-		dParams.Datacenter = deployment.GetDatacenter()
-	} else {
+	if deployment.ClusterDeployment() {
 		clusterID, ok := cxn.clusterIDsByName[deployment.GetCluster()]
 		if !ok {
 			return dParams, fmt.Errorf("Unable to provsion '%s'. The specified cluster name, '%s' does not map to a known cluster.",
 				deployment.GetName(), deployment.GetCluster())
 		}
 		dParams.ClusterID = clusterID
+	} else {
+		datacenter := deployment.GetDatacenter()
+		if _, ok := cxn.datacenters[datacenter]; !ok {
+			return dParams, fmt.Errorf("Unable to provision '%s'. '%s' is not a known datacenter.",
+				deployment.GetName(), datacenter)
+		}
+		dParams.Datacenter = datacenter
 	}
 
 	if len(deployment.GetVersion()) > 0 {

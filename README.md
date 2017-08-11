@@ -24,10 +24,21 @@ type: postgresql|redis|rabbitmq|etcd|elastic_search
 # an existing deployment to a newer version
 version: 3.2.10
 
+# pachelbel supports deplotments to datacenters *or* clusters. You cannot specify
+# both fields for a specific deployment.
+#
 # pachelbel will attempt to map the cluster-name to an ID. If that cluster
 # does not exist or is not visible when using the provided API token, pachelbel
-# exits. There is currently no support for the creation/deleting of clusters.
+# will throw an error. There is currently no support for the creation/deleting
+# of clusters.
 cluster: my-softlayer-cluster
+
+# pachelbel supports deplotments to datacenters *or* clusters. You cannot specify
+# both fields for a specific deployment.
+#
+# the value provided here should be a datacenter slug as returned by the compose
+# API
+datacenter: aws:us-east-1
 
 # The name of the deployment must be <64 characters, but is otherwise very
 # flexible
