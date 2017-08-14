@@ -22,6 +22,7 @@ package cmd
 
 import (
 	"log"
+	"os"
 	"sync"
 
 	"github.com/benjdewan/pachelbel/config"
@@ -125,6 +126,7 @@ func flush(errQueue *queue.Queue) {
 				log.Fatalf("Only errors should be in the error queue. Found %v", item)
 			}
 		}
+		os.Exit(1)
 	}
 	errQueue.Dispose()
 }
