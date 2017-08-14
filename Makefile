@@ -1,8 +1,8 @@
 # Constants
 VERSION := $(shell git describe --tags || echo DEV-BUILD)
 LDFLAGS := "-X github.com/benjdewan/pachelbel/cmd.version=$(VERSION)"
-CGO_ENABLED := 0
-GOARCH := amd64
+export CGO_ENABLED := 0
+export GOARCH := amd64
 
 # Targets/Source
 TARGETS := pachelbel-linux pachelbel-windows.exe pachelbel-darwin
