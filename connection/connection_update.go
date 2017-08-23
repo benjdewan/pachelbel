@@ -40,6 +40,10 @@ func update(cxn *Connection, dep Deployment) error {
 		return err
 	}
 
+	if err := updateNotes(cxn, id, dep.GetNotes()); err != nil {
+		return err
+	}
+
 	version := dep.GetVersion()
 	if len(version) > 0 {
 		if err := updateVersion(cxn, id, version, timeout); err != nil {
@@ -87,6 +91,22 @@ func updateScalings(cxn *Connection, ID string, newScale int, timeout float64) e
 	err := cxn.waitOnRecipe(recipe.ID, timeout)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func updateNotes(cxn *Connection, ID, newNotes string) error {
+	if len(newNotes) == 0 {
+		return nil
+	}
+	pParams := compose.PatchDeploymentParams{
+		DeploymentID: ID,
+		Notes:        newNotes,
+	}
+
+	_, errs := cxn.client.PatchDeployment(pParams)
+	if len(errs) != 0 {
+		return fmt.Errorf("Unable to update notes for '%s':\n%v", ID, errsOut(errs))
 	}
 	return nil
 }
