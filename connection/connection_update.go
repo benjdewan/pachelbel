@@ -24,100 +24,89 @@ import (
 	"fmt"
 
 	compose "github.com/benjdewan/gocomposeapi"
-	"github.com/golang-collections/go-datastructures/queue"
-	"github.com/gosuri/uiprogress"
 )
 
-func update(cxn *Connection, depID string, dep Deployment, errQueue *queue.Queue) {
+func update(cxn *Connection, dep Deployment) error {
+	existing, ok := cxn.getDeploymentByName(dep.GetName())
+	if !ok {
+		return fmt.Errorf("Attempting to update '%s', but it doesn't exist",
+			dep.GetName())
+	}
+
+	id := existing.ID
 	timeout := dep.GetTimeout()
-	bar, pollLength := newBar(timeout, cxn.pollingInterval, 2,
-		dep.TeamEntryCount(), cxn.MaxNameLength, dep.GetName(),
-		"updating")
 
 	scaling := dep.GetScaling()
-	if err := updateScalings(cxn, depID, scaling, timeout, bar); err != nil {
-		enqueue(errQueue, err)
-		return
+	if err := updateScalings(cxn, id, scaling, timeout); err != nil {
+		return err
 	}
-	setProgress(bar, pollLength)
 
 	version := dep.GetVersion()
 	if len(version) > 0 {
-		if err := updateVersion(cxn, depID, version, timeout, bar); err != nil {
-			enqueue(errQueue, err)
-			return
+		if err := updateVersion(cxn, id, version, timeout); err != nil {
+			return err
 		}
 	}
-	setProgress(bar, 2*pollLength)
 
-	if err := addTeamRoles(cxn, depID, dep.GetTeamRoles(), bar); err != nil {
-		enqueue(errQueue, err)
-		return
+	if err := addTeamRoles(cxn, id, dep.GetTeamRoles()); err != nil {
+		return err
 	}
-	setProgress(bar, bar.Total)
 
 	// Changing versions and sizes can change the deployment ID. Ensure
 	// we have the latest/live value
 	updatedDeployment, errs := cxn.client.GetDeploymentByName(dep.GetName())
 	if len(errs) != 0 {
-		enqueue(errQueue, errsOut(errs))
-		return
+		return fmt.Errorf("Unable to get deployment information for '%s':\n%s",
+			dep.GetName(), errsOut(errs))
 	}
 	cxn.newDeploymentIDs.Store(updatedDeployment.ID, struct{}{})
-	return
+	return nil
 }
 
-func updateScalings(cxn *Connection, depID string, newScale int, timeout float64, b *uiprogress.Bar) error {
-	existingScalings, errs := cxn.client.GetScalings(depID)
+func updateScalings(cxn *Connection, ID string, newScale int, timeout float64) error {
+	existingScalings, errs := cxn.client.GetScalings(ID)
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to get current scaling for '%s':\n%v",
-			depID, errsOut(errs))
+			ID, errsOut(errs))
 	}
 
 	if existingScalings.AllocatedUnits == newScale {
-		fmt.Printf("Existing deployment '%s' is the expected size '%v'\n",
-			depID, newScale)
 		return nil
 	}
 
-	fmt.Printf("Rescaling '%s':\n\tCurrent scale: %v\n\tDesired scale: %v",
-		depID, existingScalings.AllocatedUnits, newScale)
-
 	params := compose.ScalingsParams{
-		DeploymentID: depID,
+		DeploymentID: ID,
 		Units:        newScale,
 	}
 
 	recipe, errs := cxn.client.SetScalings(params)
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to resize '%s':\n%v",
-			depID, errsOut(errs))
+			ID, errsOut(errs))
 	}
 
-	err := cxn.waitOnRecipe(recipe.ID, timeout, b)
+	err := cxn.waitOnRecipe(recipe.ID, timeout)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func updateVersion(cxn *Connection, depID, newVersion string, timeout float64, b *uiprogress.Bar) error {
-	deployment, errs := cxn.client.GetDeployment(depID)
+func updateVersion(cxn *Connection, ID, newVersion string, timeout float64) error {
+	deployment, errs := cxn.client.GetDeployment(ID)
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to fetch current deployment information for '%s':\n%v",
-			depID, errsOut(errs))
+			ID, errsOut(errs))
 	}
 
 	if deployment.Version == newVersion {
-		fmt.Printf("Deployment '%s' is at version '%s'. Not upgrading\n",
-			depID, newVersion)
 		return nil
 	}
 
-	transitions, errs := cxn.client.GetVersionsForDeployment(depID)
+	transitions, errs := cxn.client.GetVersionsForDeployment(ID)
 	if len(errs) != 0 || transitions == nil {
 		return fmt.Errorf("Error fetching upgrade information for '%s':\n%v",
-			depID, errsOut(errs))
+			ID, errsOut(errs))
 	}
 
 	validTransition := false
@@ -129,16 +118,16 @@ func updateVersion(cxn *Connection, depID, newVersion string, timeout float64, b
 	}
 	if !validTransition {
 		return fmt.Errorf("Cannot upgrade '%s' to version '%s'.",
-			depID, newVersion)
+			ID, newVersion)
 	}
 
-	recipe, errs := cxn.client.UpdateVersion(depID, newVersion)
+	recipe, errs := cxn.client.UpdateVersion(ID, newVersion)
 	if errs != nil {
 		return fmt.Errorf("Unable to upgrade '%s' to version '%s':\n%v",
-			depID, newVersion, errsOut(errs))
+			ID, newVersion, errsOut(errs))
 	}
 
-	err := cxn.waitOnRecipe(recipe.ID, timeout, b)
+	err := cxn.waitOnRecipe(recipe.ID, timeout)
 	if err != nil {
 		return err
 	}

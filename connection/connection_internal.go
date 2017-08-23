@@ -28,10 +28,28 @@ import (
 
 	compose "github.com/benjdewan/gocomposeapi"
 	"github.com/golang-collections/go-datastructures/queue"
-	"github.com/gosuri/uiprogress"
 )
 
-func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64, bar *uiprogress.Bar) error {
+type deployFunc func(*Connection, Deployment) error
+
+type composeDeployer struct {
+	deployment Deployment
+	run        deployFunc
+}
+
+func (cxn *Connection) getDeploymentByName(name string) (*compose.Deployment, bool) {
+	if item, ok := cxn.deploymentsByName.Load(name); ok {
+		switch existing := item.(type) {
+		case *compose.Deployment:
+			return existing, true
+		default:
+			panic("Only objects of type *compose.Deployment should be in this map")
+		}
+	}
+	return nil, false
+}
+
+func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64) error {
 	start := time.Now()
 	for time.Since(start).Seconds() <= timeout {
 		recipe, errs := cxn.client.GetRecipe(recipeID)
@@ -43,12 +61,11 @@ func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64, bar *uipro
 			return nil
 		}
 		time.Sleep(cxn.pollingInterval)
-		bar.Incr()
 	}
 	return fmt.Errorf("Timed out waiting on recipe %v to complete", recipeID)
 }
 
-func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]string, bar *uiprogress.Bar) error {
+func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]string) error {
 	existingRoles, errs := cxn.client.GetTeamRoles(deploymentID)
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to retrieve team_role information for '%s':\n%v\n",
@@ -57,8 +74,6 @@ func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]s
 	if len(teamRoles) == 0 {
 		return nil
 	}
-
-	fmt.Printf("Setting up team roles for '%v'\n", deploymentID)
 
 	for role, teams := range teamRoles {
 		existingTeams := []compose.Team{}
@@ -74,8 +89,6 @@ func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]s
 				Name:   role,
 				TeamID: teamID,
 			}
-			fmt.Printf("Adding team '%v' to deployment '%v' with role '%v'\n",
-				teamID, deploymentID, role)
 
 			_, createErrs := cxn.client.CreateTeamRole(deploymentID,
 				params)
@@ -84,7 +97,6 @@ func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]s
 					teamID, role, deploymentID,
 					errsOut(createErrs))
 			}
-			bar.Incr()
 		}
 	}
 	return nil
@@ -167,36 +179,6 @@ func createClient(apiKey string) (*compose.Client, error) {
 	}
 
 	return compose.NewClient(apiKey)
-}
-
-func newBar(timeout float64, interval time.Duration, pollCount, offset int, nameLength int, name, action string) (*uiprogress.Bar, int) {
-	pollLength := int(timeout / float64(interval/time.Second))
-	length := pollCount*pollLength + offset
-
-	bar := uiprogress.AddBar(length).
-		AppendCompleted().
-		PrependElapsed().
-		PrependFunc(func(b *uiprogress.Bar) string {
-			return fmt.Sprintf("%s : %s",
-				ljust(name, nameLength),
-				rjust(action, 12))
-		})
-
-	return bar, pollLength
-}
-
-func ljust(str string, width int) string {
-	return fmt.Sprintf(fmt.Sprintf("%%-%ds", width), str)
-}
-
-func rjust(str string, width int) string {
-	return fmt.Sprintf(fmt.Sprintf("%%%ds", width), str)
-}
-
-func setProgress(bar *uiprogress.Bar, value int) {
-	for bar.Current() < value {
-		bar.Incr()
-	}
 }
 
 func enqueue(q *queue.Queue, item interface{}) {

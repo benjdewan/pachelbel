@@ -28,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/benjdewan/pachelbel/connection"
 	"github.com/ghodss/yaml"
 )
 
@@ -57,12 +58,12 @@ func BuildDatacenterFilter(datacenters []string) {
 // data into deployment object. Both configuration files and directories
 // of configuration files are valid arguments, but directories are not
 // read recursively, only immediate child files are parsed.
-func ReadFiles(args []string, verbose bool) ([]DeploymentV1, error) {
-	deployments := []DeploymentV1{}
+func ReadFiles(args []string, verbose bool) ([]connection.Deployment, error) {
+	deployments := []connection.Deployment{}
 	for _, path := range args {
 		info, err := os.Stat(path)
 		if err != nil {
-			return []DeploymentV1{}, err
+			return deployments, err
 		}
 		newDeployments := []DeploymentV1{}
 		switch mode := info.Mode(); {
@@ -74,22 +75,11 @@ func ReadFiles(args []string, verbose bool) ([]DeploymentV1, error) {
 		if err != nil {
 			return deployments, err
 		}
-
-		deployments = append(deployments, newDeployments...)
-	}
-	return deployments, nil
-}
-
-// MaxNameLength returns the length of the longest deployment name. This is
-// very useful for formatting progress bars.
-func MaxNameLength(deployments []DeploymentV1) int {
-	max := 0
-	for _, deployment := range deployments {
-		if length := len(deployment.Name); length > max {
-			max = length
+		for _, d := range newDeployments {
+			deployments = append(deployments, connection.Deployment(d))
 		}
 	}
-	return max
+	return deployments, nil
 }
 
 func readDir(root string, verbose bool) ([]DeploymentV1, error) {

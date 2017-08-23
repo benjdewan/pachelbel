@@ -24,42 +24,30 @@ import (
 	"fmt"
 
 	compose "github.com/benjdewan/gocomposeapi"
-	"github.com/golang-collections/go-datastructures/queue"
 )
 
-func provision(cxn *Connection, deployment Deployment, errQueue *queue.Queue) {
-	bar, pollLength := newBar(deployment.GetTimeout(), cxn.pollingInterval,
-		1, deployment.TeamEntryCount()+2, cxn.MaxNameLength,
-		deployment.GetName(), "provisioning")
-
+func create(cxn *Connection, deployment Deployment) error {
 	dParams, err := deploymentParams(deployment, cxn)
 	if err != nil {
-		return
+		return err
 	}
-	bar.Incr()
 
 	//This needs to be wrapped in retry logic
 	newDeployment, errs := cxn.client.CreateDeployment(dParams)
 	if len(errs) != 0 {
-		enqueue(errQueue, fmt.Errorf("Unable to create '%s': %s\n", deployment.GetName(), errsOut(errs)))
-		return
+		return fmt.Errorf("Unable to create '%s': %s\n", deployment.GetName(), errsOut(errs))
 	}
-	bar.Incr()
 
-	if err := cxn.waitOnRecipe(newDeployment.ProvisionRecipeID, deployment.GetTimeout(), bar); err != nil {
-		enqueue(errQueue, err)
-		return
+	if err := cxn.waitOnRecipe(newDeployment.ProvisionRecipeID, deployment.GetTimeout()); err != nil {
+		return err
 	}
-	setProgress(bar, 2+pollLength)
 
-	if err := addTeamRoles(cxn, newDeployment.ID, deployment.GetTeamRoles(), bar); err != nil {
-		enqueue(errQueue, err)
-		return
+	if err := addTeamRoles(cxn, newDeployment.ID, deployment.GetTeamRoles()); err != nil {
+		return err
 	}
 	cxn.newDeploymentIDs.Store(newDeployment.ID, struct{}{})
-	setProgress(bar, bar.Total)
 
-	return
+	return nil
 }
 
 func deploymentParams(deployment Deployment, cxn *Connection) (compose.DeploymentParams, error) {

@@ -26,6 +26,7 @@ import (
 	"time"
 
 	compose "github.com/benjdewan/gocomposeapi"
+	"github.com/benjdewan/pachelbel/progress"
 	"github.com/golang-collections/go-datastructures/queue"
 	"golang.org/x/sync/syncmap"
 )
@@ -51,10 +52,6 @@ type Deployment interface {
 // Connection is the struct that manages the state of provisioning
 // work done in Compose during an invocation of pachelbel.
 type Connection struct {
-	// The length of the longest deployment name. This is used for
-	// formatting the progress bars
-	MaxNameLength int
-
 	// Internal fields
 	client            *compose.Client
 	accountID         string
@@ -63,6 +60,7 @@ type Connection struct {
 	deploymentsByName *syncmap.Map
 	newDeploymentIDs  *syncmap.Map
 	pollingInterval   time.Duration
+	pb                *progress.ProgressBars
 }
 
 // Init creates a Connection struct that is used for provisioning
@@ -73,8 +71,9 @@ func Init(apiKey string, pollingInterval int) (*Connection, error) {
 		newDeploymentIDs:  &syncmap.Map{},
 		deploymentsByName: &syncmap.Map{},
 		pollingInterval:   time.Duration(pollingInterval) * time.Second,
-		MaxNameLength:     24,
+		pb:                progress.New(),
 	}
+	cxn.pb.RefreshRate = cxn.pollingInterval
 	var err error
 
 	cxn.client, err = createClient(apiKey)
@@ -105,18 +104,41 @@ func Init(apiKey string, pollingInterval int) (*Connection, error) {
 // Provision will create a new deployment or update an existing deployment
 // to the size and version specified as well as ensure every team role listed
 // is applied to that deployment.
-func Provision(cxn *Connection, deployment Deployment, errQueue *queue.Queue, wg *sync.WaitGroup) {
-	defer wg.Done()
-	if item, ok := cxn.deploymentsByName.Load(deployment.GetName()); ok {
-		switch existing := item.(type) {
-		case *compose.Deployment:
-			update(cxn, existing.ID, deployment, errQueue)
-		default:
-			panic("Only compose.Deployment structs should be in this map")
+func (cxn *Connection) Provision(deployments []Deployment, errQueue *queue.Queue) {
+	deployers := []composeDeployer{}
+	for _, deployment := range deployments {
+		if _, ok := cxn.getDeploymentByName(deployment.GetName()); ok {
+			cxn.pb.AddBar(progress.ActionUpdate, deployment.GetName())
+			deployers = append(deployers, composeDeployer{
+				deployment: deployment,
+				run:        update,
+			})
+		} else {
+			cxn.pb.AddBar(progress.ActionCreate, deployment.GetName())
+			deployers = append(deployers, composeDeployer{
+				deployment: deployment,
+				run:        create,
+			})
 		}
-	} else {
-		provision(cxn, deployment, errQueue)
 	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(deployers))
+
+	cxn.pb.Start()
+	for _, deployer := range deployers {
+		go func(d composeDeployer) {
+			if err := d.run(cxn, d.deployment); err != nil {
+				enqueue(errQueue, err)
+				cxn.pb.Error(d.deployment.GetName())
+			} else {
+				cxn.pb.Done(d.deployment.GetName())
+			}
+			wg.Done()
+		}(deployer)
+	}
+	wg.Wait()
+	cxn.pb.Stop()
 }
 
 // ConnectionStringsYAML writes out the connection strings for all the
