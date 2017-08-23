@@ -36,8 +36,7 @@ func update(cxn *Connection, dep Deployment) error {
 	id := existing.ID
 	timeout := dep.GetTimeout()
 
-	scaling := dep.GetScaling()
-	if err := updateScalings(cxn, id, scaling, timeout); err != nil {
+	if err := updateScalings(cxn, id, dep.GetScaling(), timeout); err != nil {
 		return err
 	}
 
