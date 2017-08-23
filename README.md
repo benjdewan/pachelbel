@@ -22,8 +22,8 @@ type: mongodb|rethinkdb|postgresql|redis|rabbitmq|etcd|elastic_search|mysql|janu
 # an existing deployment to a newer version
 version: 3.2.10
 
-# pachelbel supports deplotments to datacenters *or* clusters. You cannot specify
-# both fields for a specific deployment.
+# pachelbel supports deployments to datacenters *or* clusters *or* tags. You
+# cannot specify more than one of these fields for any single deployment.
 #
 # pachelbel will attempt to map the cluster-name to an ID. If that cluster
 # does not exist or is not visible when using the provided API token, pachelbel
@@ -31,15 +31,24 @@ version: 3.2.10
 # of clusters.
 cluster: my-softlayer-cluster
 
-# pachelbel supports deplotments to datacenters *or* clusters. You cannot specify
-# both fields for a specific deployment.
+# pachelbel supports deployments to datacenters *or* clusters *or* tags. You
+# cannot specify more than one of these fields for any single deployment.
 #
 # the value provided here should be a datacenter slug as returned by the compose
 # API
 datacenter: aws:us-east-1
 
+# pachelbel supports deployments to datacenters *or* clusters *or* tags. You
+# cannot specify more than one of these fields for any single deployment.
+#
+# pachelbel does not currently validate that the provided tags exist, but
+# provisioning a deployment will fail if they do not.
+tags:
+  - dev
+  - benjdewan
+
 # The name of the deployment must be <64 characters, but is otherwise very
-# flexible
+# flexible.
 name: postgres-benjdewan-01
 
 # notes can include additional metadata about this deployment

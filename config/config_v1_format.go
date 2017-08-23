@@ -33,6 +33,7 @@ type DeploymentV1 struct {
 	Type          string      `json:"type"`
 	Cluster       string      `json:"cluster"`
 	Datacenter    string      `json:"datacenter"`
+	Tags          []string    `json:"tags"`
 	Name          string      `json:"name"`
 	Notes         string      `json:"notes"`
 	SSL           bool        `json:"ssl"`
@@ -73,6 +74,16 @@ func (d DeploymentV1) GetCluster() string {
 // ClusterDeployment returns true if this deployment should be inside a cluster
 func (d DeploymentV1) ClusterDeployment() bool {
 	return len(d.Cluster) > 0
+}
+
+// TagDeployment returns true if this deployment should be made using
+// provisioning tags
+func (d DeploymentV1) TagDeployment() bool {
+	return len(d.Tags) > 0
+}
+
+func (d DeploymentV1) GetTags() []string {
+	return d.Tags
 }
 
 // GetDatacenter returns the datacenter name the deployment should live in
@@ -161,7 +172,7 @@ func Validate(d DeploymentV1, input string) error {
 
 	errs = validateConfigVersion(d.ConfigVersion, errs)
 	errs = validateType(d.Type, errs)
-	errs = validateDeploymentTarget(d.Cluster, d.Datacenter, errs)
+	errs = validateDeploymentTarget(d.Cluster, d.Datacenter, d.Tags, errs)
 	errs = validateName(d.Name, errs)
 	errs = validateScaling(d.Scaling, errs)
 	errs = validateWiredTiger(d.WiredTiger, d.Type, errs)
@@ -193,13 +204,20 @@ func validateType(deploymentType string, errs []string) []string {
 	return errs
 }
 
-func validateDeploymentTarget(cluster, datacenter string, errs []string) []string {
-	if len(cluster) == 0 && len(datacenter) == 0 {
+func validateDeploymentTarget(cluster, datacenter string, tags, errs []string) []string {
+	if len(cluster) > 0 {
+		if len(datacenter) > 0 || len(tags) > 0 {
+			errs = append(errs,
+				"Exactly one of the 'cluster', 'datacenter', or 'tags' fields must be provided for every deployment\n")
+		}
+	} else if len(datacenter) > 0 {
+		if len(tags) > 0 {
+			errs = append(errs,
+				"Exactly one of the 'cluster', 'datacenter', or 'tags' fields must be provided for every deployment\n")
+		}
+	} else if len(tags) == 0 {
 		errs = append(errs,
-			"Either a 'cluster' or 'datacenter' must be provided for every deployment\n")
-	} else if len(cluster) > 0 && len(datacenter) > 0 {
-		errs = append(errs,
-			"A 'cluster' and 'datacenter' cannot be provided for a single deployment\n")
+			"Exactly one of the 'cluster', 'datacenter', or 'tags' fields must be provided for every deployment\n")
 	}
 
 	return errs

@@ -35,7 +35,9 @@ import (
 // the Connection struct expects as input to Provision()
 type Deployment interface {
 	ClusterDeployment() bool
+	TagDeployment() bool
 	GetCluster() string
+	GetTags() []string
 	GetDatacenter() string
 	GetName() string
 	GetNotes() string

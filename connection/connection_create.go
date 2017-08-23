@@ -58,20 +58,9 @@ func deploymentParams(deployment Deployment, cxn *Connection) (compose.Deploymen
 		Notes:        deployment.GetNotes(),
 	}
 
-	if deployment.ClusterDeployment() {
-		clusterID, ok := cxn.clusterIDsByName[deployment.GetCluster()]
-		if !ok {
-			return dParams, fmt.Errorf("Unable to provsion '%s'. The specified cluster name, '%s' does not map to a known cluster.",
-				deployment.GetName(), deployment.GetCluster())
-		}
-		dParams.ClusterID = clusterID
-	} else {
-		datacenter := deployment.GetDatacenter()
-		if _, ok := cxn.datacenters[datacenter]; !ok {
-			return dParams, fmt.Errorf("Unable to provision '%s'. '%s' is not a known datacenter.",
-				deployment.GetName(), datacenter)
-		}
-		dParams.Datacenter = datacenter
+	dParams, err := setDeploymentType(cxn, deployment, dParams)
+	if err != nil {
+		return dParams, err
 	}
 
 	if len(deployment.GetVersion()) > 0 {
@@ -90,5 +79,32 @@ func deploymentParams(deployment Deployment, cxn *Connection) (compose.Deploymen
 		dParams.SSL = true
 	}
 
+	return dParams, nil
+}
+
+func setDeploymentType(cxn *Connection, deployment Deployment, dParams compose.DeploymentParams) (compose.DeploymentParams, error) {
+	if deployment.TagDeployment() {
+		//TODO fetch tags and validate that the provided tags exist. Pachelbel will
+		// not support creating tags
+		dParams.ProvisioningTags = deployment.GetTags()
+		return dParams, nil
+	}
+
+	if deployment.ClusterDeployment() {
+		clusterID, ok := cxn.clusterIDsByName[deployment.GetCluster()]
+		if !ok {
+			return dParams, fmt.Errorf("Unable to provsion '%s'. The specified cluster name, '%s' does not map to a known cluster.",
+				deployment.GetName(), deployment.GetCluster())
+		}
+		dParams.ClusterID = clusterID
+		return dParams, nil
+	}
+
+	datacenter := deployment.GetDatacenter()
+	if _, ok := cxn.datacenters[datacenter]; !ok {
+		return dParams, fmt.Errorf("Unable to provision '%s'. '%s' is not a known datacenter.",
+			deployment.GetName(), datacenter)
+	}
+	dParams.Datacenter = datacenter
 	return dParams, nil
 }

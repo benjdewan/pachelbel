@@ -137,6 +137,46 @@ var configValidateTests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
+			Tags:          []string{"tags-are-not-validated"},
+		},
+		valid: true,
+	},
+	{
+		config: DeploymentV1{
+			ConfigVersion: 1,
+			Type:          "redis",
+			Name:          "names-are-not-validated",
+			Tags:          []string{"tags-are-not-validated"},
+			Datacenter:    "datacenters-are-not-validated",
+			Cluster:       "clusters-are-not-validated",
+		},
+		valid: false,
+	},
+	{
+		config: DeploymentV1{
+			ConfigVersion: 1,
+			Type:          "redis",
+			Name:          "names-are-not-validated",
+			Tags:          []string{"tags-are-not-validated"},
+			Datacenter:    "datacenters-are-not-validated",
+		},
+		valid: false,
+	},
+	{
+		config: DeploymentV1{
+			ConfigVersion: 1,
+			Type:          "redis",
+			Name:          "names-are-not-validated",
+			Tags:          []string{"tags-are-not-validated"},
+			Cluster:       "clusters-are-not-validated",
+		},
+		valid: false,
+	},
+	{
+		config: DeploymentV1{
+			ConfigVersion: 1,
+			Type:          "redis",
+			Name:          "names-are-not-validated",
 			Cluster:       "clusters-are-not-validated",
 			Datacenter:    "datacenters-are-not-validated",
 		},
