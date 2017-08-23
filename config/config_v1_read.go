@@ -59,6 +59,7 @@ func BuildDatacenterFilter(datacenters []string) {
 // of configuration files are valid arguments, but directories are not
 // read recursively, only immediate child files are parsed.
 func ReadFiles(args []string, verbose bool) ([]connection.Deployment, error) {
+	names := make(map[string]struct{})
 	deployments := []connection.Deployment{}
 	for _, path := range args {
 		info, err := os.Stat(path)
@@ -76,6 +77,12 @@ func ReadFiles(args []string, verbose bool) ([]connection.Deployment, error) {
 			return deployments, err
 		}
 		for _, d := range newDeployments {
+			if _, ok := names[d.Name]; ok {
+				return deployments, fmt.Errorf("Deployment names must be unique, but '%s' is specified more than once",
+					d.Name)
+			} else {
+				names[d.Name] = struct{}{}
+			}
 			deployments = append(deployments, connection.Deployment(d))
 		}
 	}
