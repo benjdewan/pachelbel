@@ -30,7 +30,7 @@ import (
 
 func TestValidate(t *testing.T) {
 	for i, test := range configValidateTests {
-		err := Validate(test.config, "ignored")
+		err := validate(test.config, "ignored")
 		if test.valid {
 			if err != nil {
 				t.Errorf("Test #%d: Expected\n%v\n to be valid, but saw: %v",

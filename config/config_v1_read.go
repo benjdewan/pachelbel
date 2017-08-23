@@ -147,7 +147,7 @@ func readConfig(blob []byte) (DeploymentV1, error) {
 	if err := yaml.Unmarshal(blob, &deployment); err != nil {
 		return deployment, err
 	}
-	err := Validate(deployment, string(blob))
+	err := validate(deployment, string(blob))
 	return deployment, err
 }
 
