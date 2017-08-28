@@ -156,20 +156,7 @@ func (p *ProgressBars) draw() {
 	p.lock.Lock()
 	statuses := []string{}
 	for _, bar := range p.bars {
-		switch bar.state {
-		case stateRunning:
-			statuses = append(statuses, strings.Repeat("░", width))
-		case stateDone:
-			statuses = append(statuses, center("DONE", width))
-			bar.state = stateFinished
-		case stateFailed:
-			statuses = append(statuses, center("ERROR", width))
-			bar.state = stateFinished
-		case stateFinished:
-			statuses = append(statuses, strings.Repeat(" ", width))
-		default:
-			log.Panicf("Unknown progress bar state: %s", bar.state)
-		}
+		statuses = append(statuses, getStatus(bar, width))
 	}
 	p.lock.Unlock()
 
@@ -182,17 +169,36 @@ func (p *ProgressBars) draw() {
 	fprintln(p.Writer, strings.Join(statuses, " "))
 }
 
-func (p *ProgressBars) printHeader() {
-	width := p.barWidth()
-	barHeaders := []string{}
-	if maxWidth(p.bars) < width {
-		barHeaders = p.completeHeaders(width)
-	} else if maxNameWidth(p.bars) < width {
-		barHeaders = p.namedHeaders(width)
-	} else {
-		barHeaders = p.numberedHeaders(width)
+func getStatus(bar *progressBar, width int) string {
+	switch bar.state {
+	case stateRunning:
+		return strings.Repeat("░", width)
+	case stateDone:
+		bar.state = stateFinished
+		return center("DONE", width)
+	case stateFailed:
+		bar.state = stateFinished
+		return center("ERROR", width)
+	case stateFinished:
+		return strings.Repeat(" ", width)
+	default:
+		log.Panicf("Unknown progress bar state: %s", bar.state)
 	}
-	fprintln(p.Writer, strings.Join(barHeaders, " "))
+	return "Unreachable"
+}
+
+func (p *ProgressBars) printHeader() {
+	fprintln(p.Writer, strings.Join(p.barHeaders(), " "))
+}
+
+func (p *ProgressBars) barHeaders() []string {
+	width := p.barWidth()
+	if maxWidth(p.bars) < width {
+		return completeHeaders(p.bars, width)
+	} else if maxNameWidth(p.bars) < width {
+		return namedHeaders(p.bars, width)
+	}
+	return numberedHeaders(p.bars, width, p.Writer)
 }
 
 func maxWidth(bars []*progressBar) int {
@@ -216,9 +222,9 @@ func maxNameWidth(bars []*progressBar) int {
 	return max
 }
 
-func (p *ProgressBars) completeHeaders(barWidth int) []string {
+func completeHeaders(bars []*progressBar, barWidth int) []string {
 	barHeaders := []string{}
-	for _, bar := range p.bars {
+	for _, bar := range bars {
 		barHeaders = append(barHeaders,
 			center(fmt.Sprintf("%s '%s'", bar.action, bar.name),
 				barWidth))
@@ -226,19 +232,19 @@ func (p *ProgressBars) completeHeaders(barWidth int) []string {
 	return barHeaders
 }
 
-func (p *ProgressBars) namedHeaders(barWidth int) []string {
+func namedHeaders(bars []*progressBar, barWidth int) []string {
 	barHeaders := []string{}
-	for _, bar := range p.bars {
+	for _, bar := range bars {
 		barHeaders = append(barHeaders, center(bar.name, barWidth))
 	}
 	return barHeaders
 }
 
-func (p *ProgressBars) numberedHeaders(barWidth int) []string {
+func numberedHeaders(bars []*progressBar, barWidth int, w io.Writer) []string {
 	barHeaders := []string{}
-	for i, bar := range p.bars {
+	for i, bar := range bars {
 		num := fmt.Sprintf("%02d", i)
-		fprintf(p.Writer, "%02d - %s '%s'\n", i, bar.action, bar.name)
+		fprintf(w, "%02d - %s '%s'\n", i, bar.action, bar.name)
 		barHeaders = append(barHeaders, center(num, barWidth))
 	}
 	return barHeaders

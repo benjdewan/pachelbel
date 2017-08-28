@@ -66,7 +66,7 @@ func ReadFiles(args []string, verbose bool) ([]connection.Deployment, error) {
 		if err != nil {
 			return deployments, err
 		}
-		newDeployments := []DeploymentV1{}
+		newDeployments := []deploymentV1{}
 		switch mode := info.Mode(); {
 		case mode.IsDir():
 			newDeployments, err = readDir(path, verbose)
@@ -88,8 +88,8 @@ func ReadFiles(args []string, verbose bool) ([]connection.Deployment, error) {
 	return deployments, nil
 }
 
-func readDir(root string, verbose bool) ([]DeploymentV1, error) {
-	deployments := []DeploymentV1{}
+func readDir(root string, verbose bool) ([]deploymentV1, error) {
+	deployments := []deploymentV1{}
 	walkErr := filepath.Walk(root, func(path string, info os.FileInfo, readErr error) error {
 		if readErr != nil {
 			return readErr
@@ -113,8 +113,8 @@ func readDir(root string, verbose bool) ([]DeploymentV1, error) {
 	return deployments, walkErr
 }
 
-func readFile(path string, verbose bool) ([]DeploymentV1, error) {
-	deployments := []DeploymentV1{}
+func readFile(path string, verbose bool) ([]deploymentV1, error) {
+	deployments := []deploymentV1{}
 	file, err := os.Open(path)
 	if err != nil {
 		return deployments, err
@@ -130,8 +130,8 @@ func readFile(path string, verbose bool) ([]DeploymentV1, error) {
 	return readConfigs(file)
 }
 
-func readConfigs(r io.Reader) ([]DeploymentV1, error) {
-	deployments := []DeploymentV1{}
+func readConfigs(r io.Reader) ([]deploymentV1, error) {
+	deployments := []deploymentV1{}
 
 	scanner := bufio.NewScanner(r)
 	scanner.Split(splitYAMLObjects)
@@ -148,8 +148,8 @@ func readConfigs(r io.Reader) ([]DeploymentV1, error) {
 	return deployments, nil
 }
 
-func readConfig(blob []byte) (DeploymentV1, error) {
-	var deployment DeploymentV1
+func readConfig(blob []byte) (deploymentV1, error) {
+	var deployment deploymentV1
 	if err := yaml.Unmarshal(blob, &deployment); err != nil {
 		return deployment, err
 	}
@@ -176,7 +176,7 @@ func splitYAMLObjects(data []byte, atEOF bool) (advance int, token []byte, err e
 var clusterFilter map[string]struct{}
 var datacenterFilter map[string]struct{}
 
-func filtered(deployment DeploymentV1) bool {
+func filtered(deployment deploymentV1) bool {
 	if len(deployment.Cluster) > 0 {
 		// At this point the deployment has already been validated, so
 		// we can safely assume this means a cluster deployment
@@ -185,7 +185,7 @@ func filtered(deployment DeploymentV1) bool {
 	return filterByDatacenter(deployment)
 }
 
-func filterByCluster(d DeploymentV1) bool {
+func filterByCluster(d deploymentV1) bool {
 	if len(clusterFilter) == 0 {
 		return false
 	}
@@ -193,7 +193,7 @@ func filterByCluster(d DeploymentV1) bool {
 	return !ok
 }
 
-func filterByDatacenter(d DeploymentV1) bool {
+func filterByDatacenter(d deploymentV1) bool {
 	if len(datacenterFilter) == 0 {
 		return false
 	}

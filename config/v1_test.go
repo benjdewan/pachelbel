@@ -94,19 +94,19 @@ var (
 )
 
 var configValidateTests = []struct {
-	config DeploymentV1
+	config deploymentV1
 	valid  bool
 }{
 	{
-		config: DeploymentV1{ConfigVersion: 0},
+		config: deploymentV1{ConfigVersion: 0},
 		valid:  false,
 	},
 	{
-		config: DeploymentV1{ConfigVersion: 1},
+		config: deploymentV1{ConfigVersion: 1},
 		valid:  false,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "invalid-type",
 			Name:          "names-are-not-validated",
@@ -115,7 +115,7 @@ var configValidateTests = []struct {
 		valid: false,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -124,7 +124,7 @@ var configValidateTests = []struct {
 		valid: true,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -133,7 +133,7 @@ var configValidateTests = []struct {
 		valid: true,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -142,7 +142,7 @@ var configValidateTests = []struct {
 		valid: true,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -153,7 +153,7 @@ var configValidateTests = []struct {
 		valid: false,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -163,7 +163,7 @@ var configValidateTests = []struct {
 		valid: false,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -173,7 +173,7 @@ var configValidateTests = []struct {
 		valid: false,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -183,7 +183,7 @@ var configValidateTests = []struct {
 		valid: false,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -191,7 +191,7 @@ var configValidateTests = []struct {
 		valid: false,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -201,7 +201,7 @@ var configValidateTests = []struct {
 		valid: false,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -211,7 +211,7 @@ var configValidateTests = []struct {
 		valid: true,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -221,7 +221,7 @@ var configValidateTests = []struct {
 		valid: false,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "mongodb",
 			Name:          "names-are-not-validated",
@@ -231,7 +231,7 @@ var configValidateTests = []struct {
 		valid: true,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -246,7 +246,7 @@ var configValidateTests = []struct {
 		valid: false,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -265,7 +265,7 @@ var configValidateTests = []struct {
 		valid: false,
 	},
 	{
-		config: DeploymentV1{
+		config: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -311,12 +311,12 @@ var oneClusterFilter = map[string]struct{}{
 }
 
 var filteredTests = []struct {
-	deployment    DeploymentV1
+	deployment    deploymentV1
 	clusterFilter map[string]struct{}
 	expected      bool
 }{
 	{
-		deployment: DeploymentV1{
+		deployment: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
@@ -327,7 +327,7 @@ var filteredTests = []struct {
 		expected:      false,
 	},
 	{
-		deployment: DeploymentV1{
+		deployment: deploymentV1{
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",

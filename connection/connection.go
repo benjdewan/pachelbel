@@ -107,22 +107,7 @@ func Init(apiKey string, pollingInterval int) (*Connection, error) {
 // to the size and version specified as well as ensure every team role listed
 // is applied to that deployment.
 func (cxn *Connection) Provision(deployments []Deployment, errQueue *queue.Queue) {
-	deployers := []composeDeployer{}
-	for _, deployment := range deployments {
-		if _, ok := cxn.getDeploymentByName(deployment.GetName()); ok {
-			cxn.pb.AddBar(progress.ActionUpdate, deployment.GetName())
-			deployers = append(deployers, composeDeployer{
-				deployment: deployment,
-				run:        update,
-			})
-		} else {
-			cxn.pb.AddBar(progress.ActionCreate, deployment.GetName())
-			deployers = append(deployers, composeDeployer{
-				deployment: deployment,
-				run:        create,
-			})
-		}
-	}
+	deployers := cxn.listDeployers(deployments)
 
 	var wg sync.WaitGroup
 	wg.Add(len(deployers))

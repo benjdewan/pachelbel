@@ -27,6 +27,7 @@ import (
 	"time"
 
 	compose "github.com/benjdewan/gocomposeapi"
+	"github.com/benjdewan/pachelbel/progress"
 	"github.com/golang-collections/go-datastructures/queue"
 )
 
@@ -35,6 +36,29 @@ type deployFunc func(*Connection, Deployment) error
 type composeDeployer struct {
 	deployment Deployment
 	run        deployFunc
+}
+
+func (cxn *Connection) listDeployers(deployments []Deployment) []composeDeployer {
+	deployers := []composeDeployer{}
+	for _, deployment := range deployments {
+		deployers = append(deployers, cxn.newDeployer(deployment))
+	}
+	return deployers
+}
+
+func (cxn *Connection) newDeployer(deployment Deployment) composeDeployer {
+	if _, ok := cxn.getDeploymentByName(deployment.GetName()); ok {
+		cxn.pb.AddBar(progress.ActionUpdate, deployment.GetName())
+		return composeDeployer{
+			deployment: deployment,
+			run:        update,
+		}
+	}
+	cxn.pb.AddBar(progress.ActionCreate, deployment.GetName())
+	return composeDeployer{
+		deployment: deployment,
+		run:        create,
+	}
 }
 
 func (cxn *Connection) getDeploymentByName(name string) (*compose.Deployment, bool) {
@@ -52,12 +76,10 @@ func (cxn *Connection) getDeploymentByName(name string) (*compose.Deployment, bo
 func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64) error {
 	start := time.Now()
 	for time.Since(start).Seconds() <= timeout {
-		recipe, errs := cxn.client.GetRecipe(recipeID)
-		if len(errs) != 0 {
+		if recipe, errs := cxn.client.GetRecipe(recipeID); len(errs) != 0 {
 			return fmt.Errorf("Error waiting on recipe %v:\n%v\n",
 				recipeID, errsOut(errs))
-		}
-		if recipe.Status == "complete" {
+		} else if recipe.Status == "complete" {
 			return nil
 		}
 		time.Sleep(cxn.pollingInterval)

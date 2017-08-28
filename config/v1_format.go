@@ -20,9 +20,9 @@
 
 package config
 
-// DeploymentV1 is the structure corresponding to version 1 of
+// deploymentV1 is the structure corresponding to version 1 of
 // pachelbel's configuration YAML
-type DeploymentV1 struct {
+type deploymentV1 struct {
 	ConfigVersion int         `json:"config_version"`
 	Version       string      `json:"version"`
 	Type          string      `json:"type"`
@@ -46,56 +46,56 @@ type TeamV1 struct {
 }
 
 // GetName returns the name of the deployment
-func (d DeploymentV1) GetName() string {
+func (d deploymentV1) GetName() string {
 	return d.Name
 }
 
 // GetNotes returns any notes associated with the deployment
-func (d DeploymentV1) GetNotes() string {
+func (d deploymentV1) GetNotes() string {
 	return d.Notes
 }
 
 // GetType returns the type of deployment
-func (d DeploymentV1) GetType() string {
+func (d deploymentV1) GetType() string {
 	return d.Type
 }
 
 // GetCluster returns the cluster name the deployment should live in or
 // nothing if the deployment should go to a datacenter
-func (d DeploymentV1) GetCluster() string {
+func (d deploymentV1) GetCluster() string {
 	return d.Cluster
 }
 
 // ClusterDeployment returns true if this deployment should be inside a cluster
-func (d DeploymentV1) ClusterDeployment() bool {
+func (d deploymentV1) ClusterDeployment() bool {
 	return len(d.Cluster) > 0
 }
 
 // TagDeployment returns true if this deployment should be made using
 // provisioning tags
-func (d DeploymentV1) TagDeployment() bool {
+func (d deploymentV1) TagDeployment() bool {
 	return len(d.Tags) > 0
 }
 
 // GetTags returns the provisioning tags for this deployment
-func (d DeploymentV1) GetTags() []string {
+func (d deploymentV1) GetTags() []string {
 	return d.Tags
 }
 
 // GetDatacenter returns the datacenter name the deployment should live in
 // or nothing if the deployment should live in a cluster
-func (d DeploymentV1) GetDatacenter() string {
+func (d deploymentV1) GetDatacenter() string {
 	return d.Datacenter
 }
 
 // GetVersion returns the database version the deployment should be deploying
-func (d DeploymentV1) GetVersion() string {
+func (d deploymentV1) GetVersion() string {
 	return d.Version
 }
 
 // GetScaling returns the database scaling value for the deployment, or 1
 // if it does not exist.
-func (d DeploymentV1) GetScaling() int {
+func (d deploymentV1) GetScaling() int {
 	if d.Scaling == nil {
 		return 1
 	}
@@ -104,7 +104,7 @@ func (d DeploymentV1) GetScaling() int {
 
 // GetTimeout returns the maximum timeout in seconds to wait on recipes for
 // this deployment. The default is 300 seconds
-func (d DeploymentV1) GetTimeout() float64 {
+func (d deploymentV1) GetTimeout() float64 {
 	if d.Timeout == nil {
 		return float64(300)
 	}
@@ -113,24 +113,24 @@ func (d DeploymentV1) GetTimeout() float64 {
 
 // GetWiredTiger is true if the deployment type is 'mongodb' and
 // the wired_tiger engine has been enabled.
-func (d DeploymentV1) GetWiredTiger() bool {
+func (d deploymentV1) GetWiredTiger() bool {
 	return d.Type == "mongodb" && d.WiredTiger
 }
 
 // GetSSL returns true if SSL should be enabled for a deployment.
-func (d DeploymentV1) GetSSL() bool {
+func (d deploymentV1) GetSSL() bool {
 	return d.SSL
 }
 
 // TeamEntryCount returns the number of team roles to apply to
 // a given deployment.
-func (d DeploymentV1) TeamEntryCount() int {
+func (d deploymentV1) TeamEntryCount() int {
 	return len(d.Teams)
 }
 
 // GetTeamRoles returns a a map of arrays of team roles to apply keyed by
 // the team ID for those roles.
-func (d DeploymentV1) GetTeamRoles() map[string]([]string) {
+func (d deploymentV1) GetTeamRoles() map[string]([]string) {
 	teamIDsByRole := make(map[string]([]string))
 	for _, team := range d.Teams {
 		if _, ok := teamIDsByRole[team.Role]; ok {

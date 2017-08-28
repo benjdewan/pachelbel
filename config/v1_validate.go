@@ -43,7 +43,7 @@ var validTypes = map[string]struct{}{
 	"janusgraph":    {},
 }
 
-func validate(d DeploymentV1, input string) error {
+func validate(d deploymentV1, input string) error {
 	errs := []string{}
 
 	errs = validateConfigVersion(d.ConfigVersion, errs)
