@@ -77,6 +77,7 @@ func (d DeploymentV1) TagDeployment() bool {
 	return len(d.Tags) > 0
 }
 
+// GetTags returns the provisioning tags for this deployment
 func (d DeploymentV1) GetTags() []string {
 	return d.Tags
 }

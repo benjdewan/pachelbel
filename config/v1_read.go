@@ -80,9 +80,8 @@ func ReadFiles(args []string, verbose bool) ([]connection.Deployment, error) {
 			if _, ok := names[d.Name]; ok {
 				return deployments, fmt.Errorf("Deployment names must be unique, but '%s' is specified more than once",
 					d.Name)
-			} else {
-				names[d.Name] = struct{}{}
 			}
+			names[d.Name] = struct{}{}
 			deployments = append(deployments, connection.Deployment(d))
 		}
 	}
