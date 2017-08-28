@@ -3,10 +3,10 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "6+4X5qXzWqrKZfWv80HbpiDhmAA=",
+			"checksumSHA1": "0iOayL8Id5cAkUlbcW6VEbm8h1k=",
 			"path": "github.com/benjdewan/gocomposeapi",
-			"revision": "a5536605d0d5e8e33296c6cc218a9c87ceec96a9",
-			"revisionTime": "2017-08-16T14:45:27Z"
+			"revision": "91d53d7d776ee450dd6eaf56a62c8da57efd4c26",
+			"revisionTime": "2017-08-28T13:48:12Z"
 		},
 		{
 			"checksumSHA1": "x2Km0Qy3WgJJnV19Zv25VwTJcBM=",
