@@ -183,14 +183,65 @@ func (p *ProgressBars) draw() {
 }
 
 func (p *ProgressBars) printHeader() {
-	barHeaders := []string{}
 	width := p.barWidth()
+	barHeaders := []string{}
+	if maxWidth(p.bars) < width {
+		barHeaders = p.completeHeaders(width)
+	} else if maxNameWidth(p.bars) < width {
+		barHeaders = p.namedHeaders(width)
+	} else {
+		barHeaders = p.numberedHeaders(width)
+	}
+	fprintln(p.Writer, strings.Join(barHeaders, " "))
+}
+
+func maxWidth(bars []*progressBar) int {
+	max := 0
+	for _, bar := range bars {
+		str := fmt.Sprintf("%s '%s'", bar.action, bar.name)
+		if len(str) > max {
+			max = len(str)
+		}
+	}
+	return max
+}
+
+func maxNameWidth(bars []*progressBar) int {
+	max := 0
+	for _, bar := range bars {
+		if len(bar.name) > max {
+			max = len(bar.name)
+		}
+	}
+	return max
+}
+
+func (p *ProgressBars) completeHeaders(barWidth int) []string {
+	barHeaders := []string{}
+	for _, bar := range p.bars {
+		barHeaders = append(barHeaders,
+			center(fmt.Sprintf("%s '%s'", bar.action, bar.name),
+				barWidth))
+	}
+	return barHeaders
+}
+
+func (p *ProgressBars) namedHeaders(barWidth int) []string {
+	barHeaders := []string{}
+	for _, bar := range p.bars {
+		barHeaders = append(barHeaders, center(bar.name, barWidth))
+	}
+	return barHeaders
+}
+
+func (p *ProgressBars) numberedHeaders(barWidth int) []string {
+	barHeaders := []string{}
 	for i, bar := range p.bars {
 		num := fmt.Sprintf("%02d", i)
 		fprintf(p.Writer, "%02d - %s '%s'\n", i, bar.action, bar.name)
-		barHeaders = append(barHeaders, center(num, width))
+		barHeaders = append(barHeaders, center(num, barWidth))
 	}
-	fprintln(p.Writer, strings.Join(barHeaders, " "))
+	return barHeaders
 }
 
 func (p *ProgressBars) barWidth() int {
@@ -201,9 +252,9 @@ func center(str string, width int) string {
 	if len(str) > width {
 		return strings.Join(strings.SplitAfter(str, "")[:width], "")
 	}
-	leftPad := width / 2
-	rightPad := width - leftPad
-	return fmt.Sprintf(fmt.Sprintf("%%%ds%%%ds", leftPad, rightPad), str, " ")
+	div := (width - len(str)) / 2
+
+	return strings.Repeat(" ", div) + str + strings.Repeat(" ", div)
 }
 
 func fprintln(w io.Writer, a ...interface{}) {
