@@ -54,7 +54,8 @@ func runProvision(cmd *cobra.Command, args []string) {
 	}
 
 	cxn, err := connection.Init(viper.GetString("api-key"),
-		viper.GetInt("polling-interval"))
+		viper.GetInt("polling-interval"),
+		viper.GetBool("dry-run"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,41 +96,61 @@ func init() {
 	addDatacenterFlag()
 	addOutputFlag()
 	addPollingIntervalFlag()
-
+	addDryRunFlag()
 }
 
 func addClusterFlag() {
 	provisionCmd.Flags().StringSliceP("cluster", "c", []string{},
-		`By default pachelbel provision will provision every deployment
-			provided. Use this flag to limit pachelbel to only
-			process deployments to the specified cluster.
+		`By default pachelbel provision will provision
+				 every deployment provided. Use this flag to
+				 limit pachelbel to only process deployments
+				 to the specified cluster.
 
-			This flag can be repeated to specify multiple clusters`)
+				 This flag can be repeated to specify multiple
+				 clusters`)
 	viper.BindPFlag("cluster", provisionCmd.Flags().Lookup("cluster"))
 }
 
 func addDatacenterFlag() {
 	provisionCmd.Flags().StringSliceP("datacenter", "d", []string{},
-		`By default pachelbel provision will provision every
-			deployment provided. Use this flat to limit pachelbel
-			to only process deployments to the specified
-			datacenter.
+		`By default pachelbel provision will
+				 provision every deployment provided. Use this
+				 flat to limit pachelbel to only process
+				 deployments to the specified datacenter.
 
-			This flag can be repeated to specify multiple datacenters.`)
+				 This flag can be repeated to specify multiple
+				 datacenters.`)
 	viper.BindPFlag("datacenter", provisionCmd.Flags().Lookup("datacenter"))
 }
 
 func addOutputFlag() {
 	provisionCmd.Flags().StringP("output", "o", "./connection-strings.yml",
-		`The file to write connection string information to.`)
+		`The file to write connection string
+				 information to.`)
 	viper.BindPFlag("output", provisionCmd.Flags().Lookup("output"))
 }
 
 func addPollingIntervalFlag() {
 	provisionCmd.Flags().IntP("polling-interval", "p", 5,
 		`The polling interval, in seconds, to use when
-			waiting for a provisioning recipe to complete`)
+				 waiting for a provisioning recipe to complete`)
 	viper.BindPFlag("polling-interval", provisionCmd.Flags().Lookup("polling-interval"))
+}
+
+func addDryRunFlag() {
+	provisionCmd.Flags().BoolP("dry-run", "n", false,
+		`Simulate a provision run without making any
+				 real changes.
+
+				 If a deployment already exists the connection
+				 strings to it will be returned, but any
+				 additional steps to rescale, upgrade or add
+				 team roles to the deployment will be ignored.
+
+				 If a deployment does not exist it will not be
+				 created and a fake connection string will be
+				 returned for testing purposes.`)
+	viper.BindPFlag("dry-run", provisionCmd.Flags().Lookup("dry-run"))
 }
 
 func flush(errQueue *queue.Queue) {

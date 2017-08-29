@@ -29,6 +29,13 @@ import (
 )
 
 func connectionStringsForDeployment(cxn *Connection, id string) ([]byte, error) {
+	if cxn.dryRun && isFake(id) {
+		return fakeConnectionString(id)
+	}
+	return getConnectionStrings(cxn, id)
+}
+
+func getConnectionStrings(cxn *Connection, id string) ([]byte, error) {
 	deployment, errs := cxn.client.GetDeployment(id)
 	if len(errs) != 0 {
 		return []byte{}, fmt.Errorf("%v", errsOut(errs))

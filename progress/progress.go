@@ -57,6 +57,10 @@ const (
 	ActionUpdate = "Updating"
 	// ActionCreate indicates that a deployment is being created
 	ActionCreate = "Creating"
+	// ActionDryRunUpdate indicates that a deployment is being "updated"
+	ActionDryRunUpdate = "Pretending to update"
+	// ActionDryRunCreate indicates a deployment is being "created"
+	ActionDryRunCreate = "Pretending to create"
 
 	stateRunning  = "running"
 	stateDone     = "done"
@@ -196,7 +200,7 @@ func (p *ProgressBars) barHeaders() []string {
 	if maxWidth(p.bars) < width {
 		return completeHeaders(p.bars, width)
 	} else if maxNameWidth(p.bars) < width {
-		return namedHeaders(p.bars, width)
+		return namedHeaders(p.bars, width, p.Writer)
 	}
 	return numberedHeaders(p.bars, width, p.Writer)
 }
@@ -232,9 +236,10 @@ func completeHeaders(bars []*progressBar, barWidth int) []string {
 	return barHeaders
 }
 
-func namedHeaders(bars []*progressBar, barWidth int) []string {
+func namedHeaders(bars []*progressBar, barWidth int, w io.Writer) []string {
 	barHeaders := []string{}
 	for _, bar := range bars {
+		fprintf(w, "%s '%s'\n", bar.action, bar.name)
 		barHeaders = append(barHeaders, center(bar.name, barWidth))
 	}
 	return barHeaders

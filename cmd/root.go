@@ -53,11 +53,11 @@ func init() {
 	// will be global for your application.
 	RootCmd.PersistentFlags().StringP("api-key", "a", "",
 		`A Compose API Key to use for authentication with the API.
-			If this flag is not set pachelbel will attempt to
-			read the COMPOSE_API_KEY environment variable.`)
+			 If this flag is not set pachelbel will attempt to
+			 read the COMPOSE_API_KEY environment variable.`)
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false,
 		`Set this flag to enable verbose mode. Very useful for debugging
-			connection issues with Compose.`)
+			 connection issues with Compose.`)
 
 	viper.BindPFlag("verbose", RootCmd.PersistentFlags().Lookup("verbose"))
 	viper.BindPFlag("api-key", RootCmd.PersistentFlags().Lookup("api-key"))

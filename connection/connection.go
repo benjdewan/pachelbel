@@ -56,6 +56,7 @@ type Deployment interface {
 type Connection struct {
 	// Internal fields
 	client            *compose.Client
+	dryRun            bool
 	accountID         string
 	clusterIDsByName  map[string]string
 	datacenters       map[string]struct{}
@@ -68,12 +69,13 @@ type Connection struct {
 // Init creates a Connection struct that is used for provisioning
 // Compose deployments. This struct is shared across every
 // Provision call.
-func Init(apiKey string, pollingInterval int) (*Connection, error) {
+func Init(apiKey string, pollingInterval int, dryRun bool) (*Connection, error) {
 	cxn := &Connection{
 		newDeploymentIDs:  &syncmap.Map{},
 		deploymentsByName: &syncmap.Map{},
 		pollingInterval:   time.Duration(pollingInterval) * time.Second,
 		pb:                progress.New(),
+		dryRun:            dryRun,
 	}
 	cxn.pb.RefreshRate = cxn.pollingInterval
 	var err error
