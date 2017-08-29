@@ -21,7 +21,10 @@
 package connection
 
 import (
+	"sync"
+
 	"github.com/benjdewan/pachelbel/progress"
+	"github.com/golang-collections/go-datastructures/queue"
 )
 
 type deployFunc func(*Connection, Deployment) error
@@ -29,6 +32,16 @@ type deployFunc func(*Connection, Deployment) error
 type composeDeployer struct {
 	deployment Deployment
 	run        deployFunc
+}
+
+func runDeployer(deployer composeDeployer, cxn *Connection, errQueue *queue.Queue, wg *sync.WaitGroup) {
+	if err := deployer.run(cxn, deployer.deployment); err != nil {
+		enqueue(errQueue, err)
+		cxn.pb.Error(deployer.deployment.GetName())
+	} else {
+		cxn.pb.Done(deployer.deployment.GetName())
+	}
+	wg.Done()
 }
 
 func (cxn *Connection) listDeployers(deployments []Deployment) []composeDeployer {

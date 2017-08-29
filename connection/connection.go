@@ -116,15 +116,7 @@ func (cxn *Connection) Provision(deployments []Deployment, errQueue *queue.Queue
 
 	cxn.pb.Start()
 	for _, deployer := range deployers {
-		go func(d composeDeployer) {
-			if err := d.run(cxn, d.deployment); err != nil {
-				enqueue(errQueue, err)
-				cxn.pb.Error(d.deployment.GetName())
-			} else {
-				cxn.pb.Done(d.deployment.GetName())
-			}
-			wg.Done()
-		}(deployer)
+		go runDeployer(deployer, cxn, errQueue, &wg)
 	}
 	wg.Wait()
 	cxn.pb.Stop()
