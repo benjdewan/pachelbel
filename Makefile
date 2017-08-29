@@ -1,6 +1,6 @@
 # Constants
 VERSION := $(shell git describe --tags || echo DEV-BUILD)
-LDFLAGS := "-X github.com/benjdewan/pachelbel/cmd.version=$(VERSION)"
+LDFLAGS := "-w -X github.com/benjdewan/pachelbel/cmd.version=$(VERSION)"
 export CGO_ENABLED := 0
 export GOARCH := amd64
 
