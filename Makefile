@@ -36,7 +36,7 @@ pachelbel-%: $(SOURCE)
 	GOOS=$* $(GOVENDOR) build -ldflags $(LDFLAGS) -o "$@"
 
 lint:
-	$(GOMETALINTER) --deadline=30s cmd/ connection/ main.go
+	$(GOMETALINTER) --deadline=90s cmd/ connection/ main.go
 .PHONY: lint
 
 test:
