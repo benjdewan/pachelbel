@@ -21,9 +21,13 @@
 package connection
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"math/rand"
 	"strings"
+
+	"github.com/ghodss/yaml"
 )
 
 var schemes = map[string]string{
@@ -38,15 +42,15 @@ var schemes = map[string]string{
 	"mysql":         "mysql",
 }
 
-var userpass = []string{
-	"mario:175Am31",
-	"luigi:gr33nM4r10",
-	"zelda:br347h0ft3hw1ld",
-	"gfreeman:1,2...",
-	"doomguy:s3cr37_r00m5",
-	"bjblazkowicz:h3lm3t5t4ck5",
-	"admin:admin",
-	"alice:Ez57510qVFnK7obJYKr3",
+var userpass = [][]string{
+	{"mario", "175Am31"},
+	{"luigi", "gr33nM4r10"},
+	{"zelda", "br347h0ft3hw1ld"},
+	{"gfreeman", "1,2..."},
+	{"doomguy", "s3cr37_r00m5"},
+	{"bjblazkowicz", "h3lm3t5t4ck5"},
+	{"admin", "admin"},
+	{"alice", "Ez57510qVFnK7obJYKr3"},
 }
 
 func dryRunCreate(cxn *Connection, deployment Deployment) error {
@@ -64,15 +68,61 @@ func dryRunUpdate(cxn *Connection, deployment Deployment) error {
 	return nil
 }
 
-func fakeConnectionString(id string) ([]byte, error) {
-	return []byte(fmt.Sprintf("%s://%s@pachelbel-dry-run.compose.direct:%d",
-		schemes[strings.Split(id, "::")[0]],
-		userpass[rand.Intn(len(userpass))],
-		rand.Intn(6497)+3)), nil
+func fakeOutputYAML(id string) ([]byte, error) {
+	cxnYAML := make(map[string]outputYAML)
+	segments := strings.Split(id, "::")
+	cxnYAML[segments[1]] = outputYAML{
+		Type:        segments[0],
+		CACert:      fakeCA(),
+		Connections: fakeConnectionYAML(segments[0], segments[1]),
+	}
+	return yaml.Marshal(cxnYAML)
+}
+
+func fakeConnectionYAML(deployType, deployName string) []connectionYAML {
+	rando := userpass[rand.Intn(len(userpass))]
+	return []connectionYAML{
+		{
+			Scheme:   schemes[deployType],
+			Host:     "pachelbel-dry-run.compose.direct",
+			Port:     rand.Intn(6497 + 3),
+			Path:     fakePath(deployType, deployName),
+			Username: rando[0],
+			Password: rando[1],
+		},
+	}
+}
+
+func fakePath(deployType, deployName string) string {
+	switch deployType {
+	case "postgresql":
+		return "/compose"
+	case "rabbitmq":
+		return "/" + deployName
+	case "elasticSearch":
+		return "/"
+	default:
+		return ""
+	}
+}
+
+func fakeCA() string {
+	var buf bytes.Buffer
+	buf.WriteString("-----BEGIN CERTIFICATE-----\n")
+	data := make([]byte, 1024)
+	rand.Read(data)
+	encData := []byte(base64.StdEncoding.EncodeToString(data))
+	for i := 64; i < len(encData); i += 65 {
+		encData = append(encData[:i], append([]byte("\n"), encData[i:]...)...)
+	}
+	buf.Write(encData)
+	buf.WriteString("\n-----END CERTIFICATE-----\n")
+	return base64.StdEncoding.EncodeToString(buf.Bytes())
 }
 
 func fakeID(deployment Deployment) string {
-	return fmt.Sprintf("%s::%s", deployment.GetType(), deployment.GetName())
+	return fmt.Sprintf("%s::%s", deployment.GetType(),
+		deployment.GetName())
 }
 
 func isFake(id string) bool {

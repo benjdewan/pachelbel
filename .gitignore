@@ -7,5 +7,5 @@
 /pachelbel.exe
 /pachelbel*.tgz
 /pachelbel*.zip
-/connection-strings.yml
+/connection-info.yml
 /pachelbel-*

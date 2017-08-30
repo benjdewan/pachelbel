@@ -62,7 +62,7 @@ func runProvision(cmd *cobra.Command, args []string) {
 
 	provision(cxn, deployments)
 
-	writeConnectionStrings(cxn, viper.GetString("output"))
+	writeOutput(cxn, viper.GetString("output"))
 }
 
 func provision(cxn *connection.Connection, deployments []connection.Deployment) {
@@ -71,9 +71,9 @@ func provision(cxn *connection.Connection, deployments []connection.Deployment) 
 	flush(errQueue)
 }
 
-func writeConnectionStrings(cxn *connection.Connection, file string) {
+func writeOutput(cxn *connection.Connection, file string) {
 	errQueue := queue.New(0)
-	cxn.ConnectionStringsYAML(viper.GetString("output"), errQueue)
+	cxn.ConnectionYAML(viper.GetString("output"), errQueue)
 	flush(errQueue)
 }
 
@@ -124,7 +124,7 @@ func addDatacenterFlag() {
 }
 
 func addOutputFlag() {
-	provisionCmd.Flags().StringP("output", "o", "./connection-strings.yml",
+	provisionCmd.Flags().StringP("output", "o", "./connection-info.yml",
 		`The file to write connection string
 				 information to.`)
 	viper.BindPFlag("output", provisionCmd.Flags().Lookup("output"))
