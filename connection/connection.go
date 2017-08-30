@@ -127,26 +127,18 @@ func (cxn *Connection) Provision(deployments []Deployment, errQueue *queue.Queue
 func (cxn *Connection) ConnectionStringsYAML(outFile string, errQueue *queue.Queue) {
 	fmt.Printf("Writing connection strings to '%v'\n", outFile)
 
-	yamlObjects := []([]byte){}
+	connections := []([]byte){}
 	cxn.newDeploymentIDs.Range(func(key, value interface{}) bool {
-		var deploymentID string
-		switch keyType := key.(type) {
-		case string:
-			deploymentID = keyType
-		default:
-			panic(fmt.Sprintf("Only deploymentIDs should be in this map"))
+		var err error
+		connections, err = connectionStringsByKey(cxn, connections, key)
+		if err == nil {
+			return true
 		}
-
-		yamlObj, err := connectionStringsForDeployment(cxn, deploymentID)
-		if err != nil {
-			enqueue(errQueue, err)
-			return false
-		}
-		yamlObjects = append(yamlObjects, yamlObj)
-		return true
+		enqueue(errQueue, err)
+		return false
 	})
 
-	if err := writeConnectionStrings(yamlObjects, outFile); err != nil {
+	if err := writeConnectionStrings(connections, outFile); err != nil {
 		enqueue(errQueue, err)
 		return
 	}

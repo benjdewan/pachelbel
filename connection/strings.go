@@ -23,12 +23,30 @@ package connection
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/ghodss/yaml"
 )
 
-func connectionStringsForDeployment(cxn *Connection, id string) ([]byte, error) {
+func connectionStringsByKey(cxn *Connection, connections [][]byte, key interface{}) ([][]byte, error) {
+	var id string
+	switch keyType := key.(type) {
+	case string:
+		id = keyType
+	default:
+		log.Panicf("IDs are supposed to be strings, but got '%v'", keyType)
+	}
+
+	yamlObj, err := connectionStringsByID(cxn, id)
+	if err == nil {
+		connections = append(connections, yamlObj)
+	}
+
+	return connections, err
+}
+
+func connectionStringsByID(cxn *Connection, id string) ([]byte, error) {
 	if cxn.dryRun && isFake(id) {
 		return fakeConnectionString(id)
 	}

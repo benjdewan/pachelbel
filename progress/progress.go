@@ -156,24 +156,27 @@ func (p *ProgressBars) changeState(name, state string) {
 }
 
 func (p *ProgressBars) draw() {
-	width := p.barWidth()
-	p.lock.Lock()
-	statuses := []string{}
-	for _, bar := range p.bars {
-		statuses = append(statuses, getStatus(bar, width))
-	}
-	p.lock.Unlock()
-
-	line := strings.Join(statuses, " ")
+	line := strings.Join(p.statuses(), " ")
 	if len(strings.Trim(line, " ")) == 0 { // everything has finished. Stop drawing
 		p.Stop()
 		return
 	}
 
-	fprintln(p.Writer, strings.Join(statuses, " "))
+	fprintln(p.Writer, line)
 }
 
-func getStatus(bar *progressBar, width int) string {
+func (p *ProgressBars) statuses() []string {
+	statuses := []string{}
+	width := p.barWidth()
+	p.lock.Lock()
+	for _, bar := range p.bars {
+		statuses = append(statuses, bar.statusString(width))
+	}
+	p.lock.Unlock()
+	return statuses
+}
+
+func (bar *progressBar) statusString(width int) string {
 	switch bar.state {
 	case stateRunning:
 		return strings.Repeat("░", width)
