@@ -58,7 +58,7 @@ func BuildDatacenterFilter(datacenters []string) {
 // data into deployment object. Both configuration files and directories
 // of configuration files are valid arguments, but directories are not
 // read recursively, only immediate child files are parsed.
-func ReadFiles(args []string, verbose bool) ([]connection.Deployment, error) {
+func ReadFiles(args []string) ([]connection.Deployment, error) {
 	names := make(map[string]struct{})
 	deployments := []connection.Deployment{}
 	for _, path := range args {
@@ -69,9 +69,9 @@ func ReadFiles(args []string, verbose bool) ([]connection.Deployment, error) {
 		newDeployments := []deploymentV1{}
 		switch mode := info.Mode(); {
 		case mode.IsDir():
-			newDeployments, err = readDir(path, verbose)
+			newDeployments, err = readDir(path)
 		case mode.IsRegular():
-			newDeployments, err = readFile(path, verbose)
+			newDeployments, err = readFile(path)
 		}
 		if err != nil {
 			return deployments, err
@@ -88,7 +88,7 @@ func ReadFiles(args []string, verbose bool) ([]connection.Deployment, error) {
 	return deployments, nil
 }
 
-func readDir(root string, verbose bool) ([]deploymentV1, error) {
+func readDir(root string) ([]deploymentV1, error) {
 	deployments := []deploymentV1{}
 	walkErr := filepath.Walk(root, func(path string, info os.FileInfo, readErr error) error {
 		if readErr != nil {
@@ -98,12 +98,10 @@ func readDir(root string, verbose bool) ([]deploymentV1, error) {
 			return nil
 		}
 		if info.IsDir() {
-			if verbose {
-				fmt.Printf("Skipping %v.\n", path)
-				return nil
-			}
+			fmt.Printf("Skipping %v.\n", path)
+			return nil
 		}
-		newDeployments, err := readFile(path, verbose)
+		newDeployments, err := readFile(path)
 		if err != nil {
 			return err
 		}
@@ -113,7 +111,7 @@ func readDir(root string, verbose bool) ([]deploymentV1, error) {
 	return deployments, walkErr
 }
 
-func readFile(path string, verbose bool) ([]deploymentV1, error) {
+func readFile(path string) ([]deploymentV1, error) {
 	deployments := []deploymentV1{}
 	file, err := os.Open(path)
 	if err != nil {

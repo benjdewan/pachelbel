@@ -22,6 +22,7 @@ package connection
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -57,6 +58,7 @@ type Deployment interface {
 type Connection struct {
 	// Internal fields
 	client            *compose.Client
+	logFile           *os.File
 	dryRun            bool
 	accountID         string
 	clusterIDsByName  map[string]string
@@ -72,7 +74,7 @@ type Connection struct {
 // Init creates a Connection struct that is used for provisioning
 // Compose deployments. This struct is shared across every
 // Provision call.
-func Init(apiKey string, pollingInterval int, dryRun bool) (*Connection, error) {
+func Init(apiKey, logFile string, pollingInterval int, dryRun bool) (*Connection, error) {
 	cxn := &Connection{
 		newDeploymentIDs:  &syncmap.Map{},
 		deploymentsByName: &syncmap.Map{},
@@ -83,7 +85,14 @@ func Init(apiKey string, pollingInterval int, dryRun bool) (*Connection, error) 
 	cxn.pb.RefreshRate = cxn.pollingInterval
 	var err error
 
-	cxn.client, err = createClient(apiKey)
+	if len(logFile) > 0 {
+		cxn.logFile, err = os.Create(logFile)
+		if err != nil {
+			return cxn, err
+		}
+	}
+
+	cxn.client, err = createClient(apiKey, cxn.logFile)
 	if err != nil {
 		return cxn, err
 	}
@@ -145,4 +154,13 @@ func (cxn *Connection) ConnectionYAML(outFile string, errQueue *queue.Queue) {
 		enqueue(errQueue, err)
 		return
 	}
+}
+
+// Close closes any open connections and/or files possessed by the Connection
+// instance.
+func (cxn *Connection) Close() error {
+	if cxn.logFile == nil {
+		return nil
+	}
+	return cxn.logFile.Close()
 }

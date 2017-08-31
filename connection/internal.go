@@ -23,6 +23,7 @@ package connection
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -164,12 +165,12 @@ func fetchAccountID(client *compose.Client) (string, error) {
 	return account.ID, nil
 }
 
-func createClient(apiKey string) (*compose.Client, error) {
+func createClient(apiKey string, w io.Writer) (*compose.Client, error) {
 	if len(apiKey) == 0 {
 		return nil, errors.New("No API key found. Specify one using the --api-key flag or the COMPOSE_API_KEY environment variable")
 	}
 
-	return compose.NewClient(apiKey)
+	return compose.NewLoggingClient(apiKey, w)
 }
 
 func enqueue(q *queue.Queue, item interface{}) {

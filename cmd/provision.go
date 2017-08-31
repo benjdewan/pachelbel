@@ -54,11 +54,18 @@ func runProvision(cmd *cobra.Command, args []string) {
 	}
 
 	cxn, err := connection.Init(viper.GetString("api-key"),
+		viper.GetString("log-file"),
 		viper.GetInt("polling-interval"),
 		viper.GetBool("dry-run"))
 	if err != nil {
 		log.Fatal(err)
+
 	}
+	defer func() {
+		if closeErr := cxn.Close(); closeErr != nil {
+			panic(closeErr)
+		}
+	}()
 
 	provision(cxn, deployments)
 
@@ -81,7 +88,7 @@ func readConfigs(paths []string) ([]connection.Deployment, error) {
 	config.BuildClusterFilter(viper.GetStringSlice("cluster"))
 	config.BuildDatacenterFilter(viper.GetStringSlice("datacenter"))
 
-	return config.ReadFiles(paths, viper.GetBool("verbose"))
+	return config.ReadFiles(paths)
 }
 
 func assertCanStart(args []string) {
@@ -97,6 +104,7 @@ func init() {
 	addOutputFlag()
 	addPollingIntervalFlag()
 	addDryRunFlag()
+	addLogFileFlag()
 }
 
 func addClusterFlag() {
@@ -151,6 +159,14 @@ func addDryRunFlag() {
 				 created and a fake connection string will be
 				 returned for testing purposes.`)
 	viper.BindPFlag("dry-run", provisionCmd.Flags().Lookup("dry-run"))
+}
+
+func addLogFileFlag() {
+	provisionCmd.Flags().StringP("log-file", "l", "",
+		`If specified pachelbel will enable logging for
+				all Compose API requests and write them, as well
+				as the reponses, to the specified log file`)
+	viper.BindPFlag("log-file", provisionCmd.Flags().Lookup("log-file"))
 }
 
 func flush(errQueue *queue.Queue) {
