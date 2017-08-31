@@ -109,15 +109,19 @@ func fakePath(deployType, deployName string) string {
 func fakeCA() string {
 	var buf bytes.Buffer
 	buf.WriteString("-----BEGIN CERTIFICATE-----\n")
+	buf.Write(fakeCABody())
+	buf.WriteString("\n-----END CERTIFICATE-----\n")
+	return base64.StdEncoding.EncodeToString(buf.Bytes())
+}
+
+func fakeCABody() []byte {
 	data := make([]byte, 1024)
 	rand.Read(data)
 	encData := []byte(base64.StdEncoding.EncodeToString(data))
 	for i := 64; i < len(encData); i += 65 {
 		encData = append(encData[:i], append([]byte("\n"), encData[i:]...)...)
 	}
-	buf.Write(encData)
-	buf.WriteString("\n-----END CERTIFICATE-----\n")
-	return base64.StdEncoding.EncodeToString(buf.Bytes())
+	return encData
 }
 
 func fakeID(deployment Deployment) string {

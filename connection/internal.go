@@ -33,12 +33,7 @@ import (
 
 func (cxn *Connection) getDeploymentByName(name string) (*compose.Deployment, bool) {
 	if item, ok := cxn.deploymentsByName.Load(name); ok {
-		switch existing := item.(type) {
-		case *compose.Deployment:
-			return existing, true
-		default:
-			panic("Only objects of type *compose.Deployment should be in this map")
-		}
+		return item.(*compose.Deployment), true
 	}
 	return nil, false
 }

@@ -75,21 +75,9 @@ type Connection struct {
 // Compose deployments. This struct is shared across every
 // Provision call.
 func Init(apiKey, logFile string, pollingInterval int, dryRun bool) (*Connection, error) {
-	cxn := &Connection{
-		newDeploymentIDs:  &syncmap.Map{},
-		deploymentsByName: &syncmap.Map{},
-		pollingInterval:   time.Duration(pollingInterval) * time.Second,
-		pb:                progress.New(),
-		dryRun:            dryRun,
-	}
-	cxn.pb.RefreshRate = cxn.pollingInterval
-	var err error
-
-	if len(logFile) > 0 {
-		cxn.logFile, err = os.Create(logFile)
-		if err != nil {
-			return cxn, err
-		}
+	cxn, err := newConnection(logFile, pollingInterval, dryRun)
+	if err != nil {
+		return cxn, err
 	}
 
 	cxn.client, err = createClient(apiKey, cxn.logFile)
@@ -117,6 +105,22 @@ func Init(apiKey, logFile string, pollingInterval int, dryRun bool) (*Connection
 	return cxn, err
 }
 
+func newConnection(logFile string, pollingInterval int, dryRun bool) (*Connection, error) {
+	cxn := &Connection{
+		newDeploymentIDs:  &syncmap.Map{},
+		deploymentsByName: &syncmap.Map{},
+		pollingInterval:   time.Duration(pollingInterval) * time.Second,
+		pb:                progress.New(),
+		dryRun:            dryRun,
+	}
+	cxn.pb.RefreshRate = cxn.pollingInterval
+	var err error
+	if len(logFile) > 0 {
+		cxn.logFile, err = os.Create(logFile)
+	}
+	return cxn, err
+}
+
 // Provision will create a new deployment or update an existing deployment
 // to the size and version specified as well as ensure every team role listed
 // is applied to that deployment.
@@ -134,7 +138,7 @@ func (cxn *Connection) Provision(deployments []Deployment, errQueue *queue.Queue
 	cxn.pb.Stop()
 }
 
-// ConnectionStringsYAML writes out the connection strings for all the
+// ConnectionYAML writes out the connection strings for all the
 // provisioned deployments as a YAML object to the provided file.
 func (cxn *Connection) ConnectionYAML(outFile string, errQueue *queue.Queue) {
 	fmt.Printf("Writing connection strings to '%v'\n", outFile)
@@ -142,7 +146,7 @@ func (cxn *Connection) ConnectionYAML(outFile string, errQueue *queue.Queue) {
 	connections := []([]byte){}
 	cxn.newDeploymentIDs.Range(func(key, value interface{}) bool {
 		var err error
-		connections, err = connectionYAMLByKey(cxn, connections, key)
+		connections, err = connectionYAMLByID(cxn, connections, key.(string))
 		if err == nil {
 			return true
 		}

@@ -23,7 +23,6 @@ package connection
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"strconv"
@@ -49,28 +48,15 @@ type connectionYAML struct {
 
 // codebeat:enable[TOO_MANY_IVARS]
 
-func connectionYAMLByKey(cxn *Connection, connections [][]byte, key interface{}) ([][]byte, error) {
-	var id string
-	switch keyType := key.(type) {
-	case string:
-		id = keyType
-	default:
-		log.Panicf("IDs are supposed to be strings, but got '%v'", keyType)
-	}
-
-	cxnYAML, err := connectionYAMLByID(cxn, id)
-	if err == nil {
-		connections = append(connections, cxnYAML)
-	}
-
-	return connections, err
-}
-
-func connectionYAMLByID(cxn *Connection, id string) ([]byte, error) {
+func connectionYAMLByID(cxn *Connection, connections [][]byte, id string) ([][]byte, error) {
+	var cxnYAML []byte
+	var err error
 	if cxn.dryRun && isFake(id) {
-		return fakeOutputYAML(id)
+		cxnYAML, err = fakeOutputYAML(id)
+	} else {
+		cxnYAML, err = getOutputYAML(cxn, id)
 	}
-	return getOutputYAML(cxn, id)
+	return append(connections, cxnYAML), err
 }
 
 func getOutputYAML(cxn *Connection, id string) ([]byte, error) {
