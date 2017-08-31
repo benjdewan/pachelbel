@@ -32,15 +32,15 @@ var validRolesV1 = map[string]struct{}{
 }
 
 var validTypes = map[string]struct{}{
-	"mongodb":       {},
-	"rethinkdb":     {},
-	"elasticsearch": {},
-	"redis":         {},
-	"postgresql":    {},
-	"rabbitmq":      {},
-	"etcd":          {},
-	"mysql":         {},
-	"janusgraph":    {},
+	"mongodb":        {},
+	"rethinkdb":      {},
+	"elastic_search": {},
+	"redis":          {},
+	"postgresql":     {},
+	"rabbitmq":       {},
+	"etcd":           {},
+	"mysql":          {},
+	"janusgraph":     {},
 }
 
 func validate(d deploymentV1, input string) error {
