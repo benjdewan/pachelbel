@@ -31,7 +31,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// provisionCmd represents the provision command
 var provisionCmd = &cobra.Command{
 	Use:   "provision",
 	Short: "Idempotent provisioner of compose deployments",

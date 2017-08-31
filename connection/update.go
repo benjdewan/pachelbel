@@ -26,129 +26,111 @@ import (
 	compose "github.com/benjdewan/gocomposeapi"
 )
 
-func update(cxn *Connection, dep Deployment) error {
-	existing, ok := cxn.getDeploymentByName(dep.GetName())
+func update(cxn *Connection, deployment Deployment) error {
+	existing, ok := cxn.getDeploymentByName(deployment.GetName())
 	if !ok {
 		return fmt.Errorf("Attempting to update '%s', but it doesn't exist",
-			dep.GetName())
+			deployment.GetName())
 	}
 
-	id := existing.ID
-	timeout := dep.GetTimeout()
-
-	if err := updateScalings(cxn, id, dep.GetScaling(), timeout); err != nil {
+	if err := updateScalings(cxn, existing.ID, deployment); err != nil {
 		return err
 	}
 
-	if err := updateNotes(cxn, id, dep.GetNotes()); err != nil {
+	if err := updateNotes(cxn, existing.ID, deployment); err != nil {
 		return err
 	}
 
-	version := dep.GetVersion()
-	if len(version) > 0 {
-		if err := updateVersion(cxn, id, version, timeout); err != nil {
-			return err
-		}
+	if err := updateVersion(cxn, existing, deployment); err != nil {
+		return err
 	}
 
-	if err := addTeamRoles(cxn, id, dep.GetTeamRoles()); err != nil {
+	if err := addTeamRoles(cxn, existing.ID, deployment.GetTeamRoles()); err != nil {
 		return err
 	}
 
 	// Changing versions and sizes can change the deployment ID. Ensure
 	// we have the latest/live value
-	updatedDeployment, errs := cxn.client.GetDeploymentByName(dep.GetName())
+	updatedDeployment, errs := cxn.client.GetDeploymentByName(deployment.GetName())
 	if len(errs) != 0 {
-		return fmt.Errorf("Unable to get deployment information for '%s':\n%s",
-			dep.GetName(), errsOut(errs))
+		return fmt.Errorf("Unable to get deployment information for '%s':\n%v",
+			deployment.GetName(), errs)
 	}
 	cxn.newDeploymentIDs.Store(updatedDeployment.ID, struct{}{})
 	return nil
 }
 
-func updateScalings(cxn *Connection, ID string, newScale int, timeout float64) error {
-	existingScalings, errs := cxn.client.GetScalings(ID)
+func updateScalings(cxn *Connection, id string, deployment Deployment) error {
+	existingScalings, errs := cxn.client.GetScalings(id)
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to get current scaling for '%s':\n%v",
-			ID, errsOut(errs))
+			deployment.GetName(), errs)
 	}
 
-	if existingScalings.AllocatedUnits == newScale {
+	if existingScalings.AllocatedUnits == deployment.GetScaling() {
 		return nil
 	}
 
-	params := compose.ScalingsParams{
-		DeploymentID: ID,
-		Units:        newScale,
-	}
-
-	recipe, errs := cxn.client.SetScalings(params)
+	recipe, errs := cxn.client.SetScalings(compose.ScalingsParams{
+		DeploymentID: id,
+		Units:        deployment.GetScaling(),
+	})
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to resize '%s':\n%v",
-			ID, errsOut(errs))
+			deployment.GetName(), errs)
 	}
 
-	err := cxn.waitOnRecipe(recipe.ID, timeout)
-	if err != nil {
-		return err
+	return cxn.waitOnRecipe(recipe.ID, deployment.GetTimeout())
+}
+
+func updateNotes(cxn *Connection, id string, deployment Deployment) error {
+	if len(deployment.GetNotes()) == 0 {
+		return nil
+	}
+
+	_, errs := cxn.client.PatchDeployment(compose.PatchDeploymentParams{
+		DeploymentID: id,
+		Notes:        deployment.GetNotes(),
+	})
+	if len(errs) != 0 {
+		return fmt.Errorf("Unable to update notes for '%s':\n%v",
+			id, errs)
 	}
 	return nil
 }
 
-func updateNotes(cxn *Connection, ID, newNotes string) error {
-	if len(newNotes) == 0 {
-		return nil
-	}
-	pParams := compose.PatchDeploymentParams{
-		DeploymentID: ID,
-		Notes:        newNotes,
-	}
-
-	_, errs := cxn.client.PatchDeployment(pParams)
-	if len(errs) != 0 {
-		return fmt.Errorf("Unable to update notes for '%s':\n%v", ID, errsOut(errs))
-	}
-	return nil
-}
-
-func updateVersion(cxn *Connection, ID, newVersion string, timeout float64) error {
-	deployment, errs := cxn.client.GetDeployment(ID)
-	if len(errs) != 0 {
-		return fmt.Errorf("Unable to fetch current deployment information for '%s':\n%v",
-			ID, errsOut(errs))
-	}
-
-	if deployment.Version == newVersion {
+func updateVersion(cxn *Connection, existing *compose.Deployment, deployment Deployment) error {
+	if len(deployment.GetVersion()) == 0 || existing.Version == deployment.GetVersion() {
 		return nil
 	}
 
-	transitions, errs := cxn.client.GetVersionsForDeployment(ID)
+	transitions, errs := cxn.client.GetVersionsForDeployment(existing.ID)
 	if len(errs) != 0 || transitions == nil {
 		return fmt.Errorf("Error fetching upgrade information for '%s':\n%v",
-			ID, errsOut(errs))
+			existing.Name, errs)
 	}
 
-	validTransition := false
-	for _, transition := range *transitions {
-		if transition.ToVersion == newVersion {
-			validTransition = true
-			break
-		}
-	}
-	if !validTransition {
-		return fmt.Errorf("Cannot upgrade '%s' to version '%s'.",
-			ID, newVersion)
-	}
-
-	recipe, errs := cxn.client.UpdateVersion(ID, newVersion)
-	if errs != nil {
-		return fmt.Errorf("Unable to upgrade '%s' to version '%s':\n%v",
-			ID, newVersion, errsOut(errs))
-	}
-
-	err := cxn.waitOnRecipe(recipe.ID, timeout)
+	err := validTransition(*transitions, deployment)
 	if err != nil {
 		return err
 	}
-	return nil
+
+	recipe, errs := cxn.client.UpdateVersion(existing.ID,
+		deployment.GetVersion())
+	if errs != nil {
+		return fmt.Errorf("Unable to upgrade '%s' to version '%s':\n%v",
+			deployment.GetName(), deployment.GetVersion(), errs)
+	}
+
+	return cxn.waitOnRecipe(recipe.ID, deployment.GetTimeout())
+}
+
+func validTransition(transitions []compose.VersionTransition, deployment Deployment) error {
+	for _, transition := range transitions {
+		if transition.ToVersion == deployment.GetVersion() {
+			return nil
+		}
+	}
+	return fmt.Errorf("Cannot upgrade '%s' to version '%s'.",
+		deployment.GetName(), deployment.GetVersion())
 }
