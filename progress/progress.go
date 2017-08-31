@@ -31,6 +31,7 @@ import (
 )
 
 // ProgressBars is the primary interface into the package.
+// codebeat:disable[TOO_MANY_IVARS]
 type ProgressBars struct {
 	// Writer can be set to direct where progress bars are printed
 	// os.Stdout is used by default
@@ -51,6 +52,8 @@ type ProgressBars struct {
 	stopChan chan struct{}
 	lock     *sync.RWMutex
 }
+
+// codebeat:enable[TOO_MANY_IVARS]
 
 const (
 	// ActionUpdate indicates that a deployment is being updated

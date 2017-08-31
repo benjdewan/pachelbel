@@ -22,6 +22,7 @@ package config
 
 // deploymentV1 is the structure corresponding to version 1 of
 // pachelbel's configuration YAML
+// codebeat:disable[TOO_MANY_IVARS]
 type deploymentV1 struct {
 	ConfigVersion int         `json:"config_version"`
 	Version       string      `json:"version"`
@@ -37,6 +38,8 @@ type deploymentV1 struct {
 	WiredTiger    bool        `json:"wired_tiger"`
 	Timeout       *int        `json:"timeout,omitempty"`
 }
+
+// codebeat:enable[TOO_MANY_IVARS]
 
 // TeamV1 is the structure corresponding to version 1 of pachelbel's team_roles
 // configuration YAML

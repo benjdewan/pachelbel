@@ -37,6 +37,7 @@ type outputYAML struct {
 	Connections []connectionYAML `json:"connections"`
 }
 
+// codebeat:disable[TOO_MANY_IVARS]
 type connectionYAML struct {
 	Scheme   string `json:"scheme"`
 	Host     string `json:"host"`
@@ -45,6 +46,8 @@ type connectionYAML struct {
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 }
+
+// codebeat:enable[TOO_MANY_IVARS]
 
 func connectionYAMLByKey(cxn *Connection, connections [][]byte, key interface{}) ([][]byte, error) {
 	var id string

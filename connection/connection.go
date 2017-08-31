@@ -53,6 +53,7 @@ type Deployment interface {
 
 // Connection is the struct that manages the state of provisioning
 // work done in Compose during an invocation of pachelbel.
+// codebeat:disable[TOO_MANY_IVARS]
 type Connection struct {
 	// Internal fields
 	client            *compose.Client
@@ -65,6 +66,8 @@ type Connection struct {
 	pollingInterval   time.Duration
 	pb                *progress.ProgressBars
 }
+
+// codebeat:enable[TOO_MANY_IVARS]
 
 // Init creates a Connection struct that is used for provisioning
 // Compose deployments. This struct is shared across every
