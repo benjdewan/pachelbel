@@ -164,8 +164,12 @@ func createClient(apiKey string, w io.Writer) (*compose.Client, error) {
 	if len(apiKey) == 0 {
 		return nil, errors.New("No API key found. Specify one using the --api-key flag or the COMPOSE_API_KEY environment variable")
 	}
-
-	return compose.NewLoggingClient(apiKey, w)
+	client, err := compose.NewClient(apiKey)
+	if err != nil {
+		// In the current version of gocomposeapi this is impossible
+		panic(err)
+	}
+	return client.SetLogger(true, w), nil
 }
 
 func enqueue(q *queue.Queue, item interface{}) {
