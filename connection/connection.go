@@ -143,7 +143,7 @@ func (cxn *Connection) Provision(deployments []Deployment, errQueue *queue.Queue
 func (cxn *Connection) ConnectionYAML(outFile string, errQueue *queue.Queue) {
 	fmt.Printf("Writing connection strings to '%v'\n", outFile)
 
-	connections := []([]byte){}
+	connections := []map[string]outputYAML{}
 	cxn.newDeploymentIDs.Range(func(key, value interface{}) bool {
 		var err error
 		connections, err = connectionYAMLByID(cxn, connections, key.(string))

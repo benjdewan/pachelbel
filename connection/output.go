@@ -21,7 +21,6 @@
 package connection
 
 import (
-	"bytes"
 	"fmt"
 	"net/url"
 	"os"
@@ -48,25 +47,25 @@ type connectionYAML struct {
 
 // codebeat:enable[TOO_MANY_IVARS]
 
-func connectionYAMLByID(cxn *Connection, connections [][]byte, id string) ([][]byte, error) {
-	var cxnYAML []byte
+func connectionYAMLByID(cxn *Connection, connections []map[string]outputYAML, id string) ([]map[string]outputYAML, error) {
+	var cxnYAML map[string]outputYAML
 	var err error
 	if cxn.dryRun && isFake(id) {
-		cxnYAML, err = fakeOutputYAML(id)
+		cxnYAML = fakeOutputYAML(id)
 	} else {
 		cxnYAML, err = getOutputYAML(cxn, id)
 	}
 	return append(connections, cxnYAML), err
 }
 
-func getOutputYAML(cxn *Connection, id string) ([]byte, error) {
+func getOutputYAML(cxn *Connection, id string) (map[string]outputYAML, error) {
 	deployment, errs := cxn.client.GetDeployment(id)
 	if len(errs) != 0 {
-		return []byte{}, fmt.Errorf("%v", errsOut(errs))
+		return make(map[string]outputYAML), fmt.Errorf("%v", errsOut(errs))
 	}
 	connections, err := extractConnectionsYAML(deployment.Connection.Direct)
 	if err != nil {
-		return []byte{}, err
+		return make(map[string]outputYAML), err
 	}
 	cxnYAML := make(map[string]outputYAML)
 	cxnYAML[deployment.Name] = outputYAML{
@@ -74,8 +73,7 @@ func getOutputYAML(cxn *Connection, id string) ([]byte, error) {
 		CACert:      deployment.CACertificateBase64,
 		Connections: connections,
 	}
-
-	return yaml.Marshal(cxnYAML)
+	return cxnYAML, nil
 }
 
 func extractConnectionsYAML(connectionStrings []string) ([]connectionYAML, error) {
@@ -105,7 +103,11 @@ func newConnectionYAML(u *url.URL) connectionYAML {
 	return cxnYAML
 }
 
-func writeConnectionYAML(cxnYAMLs [][]byte, file string) error {
+func writeConnectionYAML(cxnYAMLs []map[string]outputYAML, file string) error {
+	outBytes, err := yaml.Marshal(cxnYAMLs)
+	if err != nil {
+		return err
+	}
 	handle, err := os.Create(file)
 	if err != nil {
 		return err
@@ -118,6 +120,6 @@ func writeConnectionYAML(cxnYAMLs [][]byte, file string) error {
 		}
 	}()
 
-	_, err = handle.Write(bytes.Join(cxnYAMLs, []byte("\n")))
+	_, err = handle.Write(outBytes)
 	return err
 }

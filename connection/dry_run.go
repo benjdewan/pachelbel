@@ -26,8 +26,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-
-	"github.com/ghodss/yaml"
 )
 
 var schemes = map[string]string{
@@ -68,7 +66,7 @@ func dryRunUpdate(cxn *Connection, deployment Deployment) error {
 	return nil
 }
 
-func fakeOutputYAML(id string) ([]byte, error) {
+func fakeOutputYAML(id string) map[string]outputYAML {
 	cxnYAML := make(map[string]outputYAML)
 	segments := strings.Split(id, "::")
 	cxnYAML[segments[1]] = outputYAML{
@@ -76,7 +74,7 @@ func fakeOutputYAML(id string) ([]byte, error) {
 		CACert:      fakeCA(),
 		Connections: fakeConnectionYAML(segments[0], segments[1]),
 	}
-	return yaml.Marshal(cxnYAML)
+	return cxnYAML
 }
 
 func fakeConnectionYAML(deployType, deployName string) []connectionYAML {
