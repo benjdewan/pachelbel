@@ -140,13 +140,13 @@ func (cxn *Connection) Provision(deployments []Deployment, errQueue *queue.Queue
 
 // ConnectionYAML writes out the connection strings for all the
 // provisioned deployments as a YAML object to the provided file.
-func (cxn *Connection) ConnectionYAML(outFile string, errQueue *queue.Queue) {
+func (cxn *Connection) ConnectionYAML(endpointMap map[string]string, outFile string, errQueue *queue.Queue) {
 	fmt.Printf("Writing connection strings to '%v'\n", outFile)
 
 	connections := []map[string]outputYAML{}
 	cxn.newDeploymentIDs.Range(func(key, value interface{}) bool {
 		var err error
-		connections, err = connectionYAMLByID(cxn, connections, key.(string))
+		connections, err = cxn.connectionYAMLByID(connections, endpointMap, key.(string))
 		if err == nil {
 			return true
 		}

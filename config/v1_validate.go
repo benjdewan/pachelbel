@@ -25,30 +25,12 @@ import (
 	"strings"
 )
 
-var validRolesV1 = map[string]struct{}{
-	"admin":     {},
-	"developer": {},
-	"manager":   {},
-}
-
-var validTypes = map[string]struct{}{
-	"mongodb":        {},
-	"rethinkdb":      {},
-	"elastic_search": {},
-	"redis":          {},
-	"postgresql":     {},
-	"rabbitmq":       {},
-	"etcd":           {},
-	"mysql":          {},
-	"janusgraph":     {},
-}
-
-func validate(d deploymentV1, input string) error {
+func validateV1(d deploymentV1, input string) error {
 	errs := []string{}
 
-	errs = validateConfigVersion(d.ConfigVersion, errs)
+	errs = validateConfigVersionV1(d.ConfigVersion, errs)
 	errs = validateType(d.Type, errs)
-	errs = validateDeploymentTarget(d.Cluster, d.Datacenter, d.Tags, errs)
+	errs = validateDeploymentTargetV1(d.Cluster, d.Datacenter, d.Tags, errs)
 	errs = validateName(d.Name, errs)
 	errs = validateScaling(d.Scaling, errs)
 	errs = validateWiredTiger(d.WiredTiger, d.Type, errs)
@@ -62,7 +44,7 @@ func validate(d deploymentV1, input string) error {
 		input, strings.Join(errs, "\n"))
 }
 
-func validateConfigVersion(version int, errs []string) []string {
+func validateConfigVersionV1(version int, errs []string) []string {
 	if version != 1 {
 		errs = append(errs,
 			"Unsupported or missing 'config_version' field\n")
@@ -70,17 +52,7 @@ func validateConfigVersion(version int, errs []string) []string {
 	return errs
 }
 
-func validateType(deploymentType string, errs []string) []string {
-	if len(deploymentType) == 0 {
-		errs = append(errs, "The 'type' field is required\n")
-	} else if _, ok := validTypes[deploymentType]; !ok {
-		errs = append(errs,
-			fmt.Sprintf("'%s' is not a valid deployment type.", deploymentType))
-	}
-	return errs
-}
-
-func validateDeploymentTarget(cluster, datacenter string, tags, errs []string) []string {
+func validateDeploymentTargetV1(cluster, datacenter string, tags, errs []string) []string {
 	if len(cluster) > 0 {
 		if len(datacenter) > 0 || len(tags) > 0 {
 			errs = append(errs,
@@ -96,44 +68,5 @@ func validateDeploymentTarget(cluster, datacenter string, tags, errs []string) [
 			"Exactly one of the 'cluster', 'datacenter', or 'tags' fields must be provided for every deployment\n")
 	}
 
-	return errs
-}
-
-func validateName(name string, errs []string) []string {
-	if len(name) == 0 {
-		errs = append(errs, "The 'name' field is required\n")
-	}
-	return errs
-}
-
-func validateScaling(scaling *int, errs []string) []string {
-	if scaling != nil && *scaling < 1 {
-		errs = append(errs, "The 'scaling' field must be an integer >= 1\n")
-	}
-	return errs
-}
-
-func validateWiredTiger(wiredTiger bool, deploymentType string, errs []string) []string {
-	if wiredTiger && deploymentType != "mongodb" {
-		errs = append(errs,
-			"The 'wired_tiger' field is only valid for the 'mongodb' deployment type\n")
-	}
-	return errs
-}
-
-func validateTeams(teams []*TeamV1, errs []string) []string {
-	if teams == nil {
-		return errs
-	}
-	for _, team := range teams {
-		if len(team.ID) == 0 {
-			errs = append(errs, "Every team entry requires an ID\n")
-		}
-		if _, ok := validRolesV1[team.Role]; ok {
-			continue
-		}
-		errs = append(errs,
-			fmt.Sprintf("'%s' is not a valid team role\n", team.Role))
-	}
 	return errs
 }

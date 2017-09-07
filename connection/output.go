@@ -47,23 +47,24 @@ type connectionYAML struct {
 
 // codebeat:enable[TOO_MANY_IVARS]
 
-func connectionYAMLByID(cxn *Connection, connections []map[string]outputYAML, id string) ([]map[string]outputYAML, error) {
+func (cxn *Connection) connectionYAMLByID(connections []map[string]outputYAML, endpointMap map[string]string, id string) ([]map[string]outputYAML, error) {
 	var cxnYAML map[string]outputYAML
 	var err error
 	if cxn.dryRun && isFake(id) {
 		cxnYAML = fakeOutputYAML(id)
 	} else {
-		cxnYAML, err = getOutputYAML(cxn, id)
+		cxnYAML, err = cxn.getOutputYAML(endpointMap, id)
 	}
 	return append(connections, cxnYAML), err
 }
 
-func getOutputYAML(cxn *Connection, id string) (map[string]outputYAML, error) {
+func (cxn *Connection) getOutputYAML(endpointMap map[string]string, id string) (map[string]outputYAML, error) {
 	deployment, errs := cxn.client.GetDeployment(id)
 	if len(errs) != 0 {
 		return make(map[string]outputYAML), fmt.Errorf("%v", errsOut(errs))
 	}
-	connections, err := extractConnectionsYAML(deployment.Connection.Direct)
+	connections, err := extractConnectionsYAML(endpointMap,
+		deployment.Connection.Direct)
 	if err != nil {
 		return make(map[string]outputYAML), err
 	}
@@ -76,23 +77,33 @@ func getOutputYAML(cxn *Connection, id string) (map[string]outputYAML, error) {
 	return cxnYAML, nil
 }
 
-func extractConnectionsYAML(connectionStrings []string) ([]connectionYAML, error) {
+func extractConnectionsYAML(endpointMap map[string]string, connectionStrings []string) ([]connectionYAML, error) {
 	cxnYAMLs := []connectionYAML{}
 	for _, cString := range connectionStrings {
 		uri, err := url.Parse(cString)
 		if err != nil {
 			return cxnYAMLs, err
 		}
-		cxnYAMLs = append(cxnYAMLs, newConnectionYAML(uri))
+		cxnYAMLs = append(cxnYAMLs, newConnectionYAML(endpointMap, uri))
 	}
 	return cxnYAMLs, nil
 }
 
-func newConnectionYAML(u *url.URL) connectionYAML {
+func newConnectionYAML(endpointMap map[string]string, u *url.URL) connectionYAML {
 	password, _ := u.User.Password()
+	host := u.Hostname()
+
+	// host renaming can be recursive
+	for {
+		if rename, ok := endpointMap[host]; ok {
+			host = rename
+			continue
+		}
+		break
+	}
 	cxnYAML := connectionYAML{
 		Scheme:   u.Scheme,
-		Host:     u.Hostname(),
+		Host:     host,
 		Path:     u.Path,
 		Username: u.User.Username(),
 		Password: password,

@@ -20,17 +20,11 @@
 
 package config
 
-import (
-	"bufio"
-	"bytes"
-	"reflect"
-	"strings"
-	"testing"
-)
+import "testing"
 
-func TestValidate(t *testing.T) {
-	for i, test := range configValidateTests {
-		err := validate(test.config, "ignored")
+func TestValidateV1(t *testing.T) {
+	for i, test := range configValidateV1Tests {
+		err := validateV1(test.config, "ignored")
 		if test.valid {
 			if err != nil {
 				t.Errorf("Test #%d: Expected\n%v\n to be valid, but saw: %v",
@@ -43,57 +37,12 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func TestSplitYAMLObjects(t *testing.T) {
-	for i, test := range splitYAMLObjectsTests {
-		actual := []string{}
-		scanner := bufio.NewScanner(bytes.NewReader([]byte(test.input)))
-		scanner.Split(splitYAMLObjects)
-		for scanner.Scan() {
-			actual = append(actual, scanner.Text())
-		}
-		if !reflect.DeepEqual(test.expected, actual) {
-			t.Errorf("Test #%d: Input '%s' expected [%v] but got [%v]",
-				i, test.input, strings.Join(test.expected, ", "),
-				strings.Join(actual, ", "))
-		}
-	}
-}
-
-func TestFiltered(t *testing.T) {
-	for i, test := range filteredTests {
-		clusterFilter = test.clusterFilter
-		actual := filtered(test.deployment)
-		if actual != test.expected {
-			t.Errorf("Test #%d: With filter: %v\nDeployment: %v\nExpected '%v' but saw '%v'",
-				i, clusterFilter, test.deployment, test.expected,
-				actual)
-		}
-	}
-}
-
-func TestReadConfig(t *testing.T) {
-	for i, test := range readConfigTests {
-		_, err := readConfig([]byte(test.config))
-		if test.valid {
-			if err != nil {
-				t.Errorf("Test #%d: Expected config to be valid, but got:\n%v",
-					i, err)
-			}
-		} else {
-			if err == nil {
-				t.Errorf("Test #%d: %v\n should be invalid, but it wasn't caught",
-					i, test.config)
-			}
-		}
-	}
-}
-
 var (
 	validScaling   int = 2
 	invalidScaling int
 )
 
-var configValidateTests = []struct {
+var configValidateV1Tests = []struct {
 	config deploymentV1
 	valid  bool
 }{
@@ -285,184 +234,6 @@ var configValidateTests = []struct {
 				},
 			},
 		},
-		valid: true,
-	},
-}
-
-var splitYAMLObjectsTests = []struct {
-	input    string
-	expected []string
-}{
-	{input: "foo", expected: []string{"foo"}},
-	{input: "foo---bar", expected: []string{"foo---bar"}},
-	{
-		input:    "foo\n---bar",
-		expected: []string{"foo", "---bar"},
-	},
-	{
-		input:    "foo\n ---bar",
-		expected: []string{"foo\n ---bar"},
-	},
-}
-
-var emptyClusterFilter = make(map[string]struct{})
-var oneClusterFilter = map[string]struct{}{
-	"do-not-update": {},
-}
-
-var filteredTests = []struct {
-	deployment    deploymentV1
-	clusterFilter map[string]struct{}
-	expected      bool
-}{
-	{
-		deployment: deploymentV1{
-			ConfigVersion: 1,
-			Type:          "redis",
-			Name:          "names-are-not-validated",
-			Cluster:       "clusters-are-not-validated",
-			WiredTiger:    true,
-		},
-		clusterFilter: emptyClusterFilter,
-		expected:      false,
-	},
-	{
-		deployment: deploymentV1{
-			ConfigVersion: 1,
-			Type:          "redis",
-			Name:          "names-are-not-validated",
-			Cluster:       "clusters-are-not-validated",
-			WiredTiger:    true,
-		},
-		clusterFilter: oneClusterFilter,
-		expected:      true,
-	},
-}
-var readConfigTests = []struct {
-	config string
-	valid  bool
-}{
-	{
-		config: "config_version: 0",
-		valid:  false,
-	},
-	{
-		config: "config_version: 1",
-		valid:  false,
-	},
-	{
-		config: `---
-config_version: 1,
-type: "invalid-type"
-name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"`,
-		valid: false,
-	},
-	{
-		config: `---
-config_version: 1
-type: "redis"
-name: "names-are-not-validated"
-cluster: "clusters-are-not-validated"`,
-		valid: true,
-	},
-	{
-		config: `---
-config_version: 1
-type: "redis"
-name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"`,
-		valid: true,
-	},
-	{
-		config: `---
-config_version: 1
-type: "redis"
-name: "names-are-not-validated"
-cluster: "clusters-are-not-validated"
-datacenter: "datacenters-are-not-validated"`,
-		valid: false,
-	},
-	{
-		config: `---
-config_version: 1
-type: "redis"
-name: "names-are-not-validated"`,
-		valid: false,
-	},
-	{
-		config: `---
-config_version: 1
-type: "redis"
-name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
-scaling: 0`,
-		valid: false,
-	},
-	{
-		config: `---
-config_version: 1
-type: "redis"
-name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
-scaling: 2`,
-		valid: true,
-	},
-	{
-		config: `---
-config_version: 1
-type: "redis"
-name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
-wired_tiger: true`,
-		valid: false,
-	},
-	{
-		config: `---
-config_version: 1
-type: "mongodb"
-name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
-wired_tiger: true`,
-		valid: true,
-	},
-	{
-		config: `---
-config_version: 1
-type: "redis"
-name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
-teams:
-  - id: "team-ids-are-not-validated"
-    role: "not-a-real-role"`,
-		valid: false,
-	},
-	{
-		config: `---
-config_version: 1
-type: "redis"
-name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
-teams:
-  - id: "team-ids-are-not-validated"
-    role: "admin"
-  - id: "seriously-they-arent"
-    role: "not-a-real-role"`,
-		valid: false,
-	},
-	{
-		config: `---
-config_version: 1
-type: "redis"
-name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
-teams:
-  - id: "team-ids-are-not-validated"
-    role: "admin"
-  - id: "team-ids-are-not-validated"
-    role: "manager"
-  - id: "team-ids-are-not-validated"
-    role: "developer"`,
 		valid: true,
 	},
 }

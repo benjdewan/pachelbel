@@ -12,7 +12,8 @@ pachelbel is built atop cobra and has extensive information available using `--h
 pachelbel is designed to read yaml configuration files. The YAML objects read in must adhere to the following schema:
 
 ```yaml
-# The config is versioned, but only 1 version currently exists.
+# The config is versioned. Objects of different config_versions can be used in
+# a single pachelbel provision run.
 config_version: 1
 
 # Compose offers many database types.
@@ -81,9 +82,37 @@ teams:
 # WiredTiger is a storage engine option for MongoDB. Setting this field for
 # any other type of deployment will throw an error
 wired_tiger: true
-```
 
-Multiple YAML configuration objects can be combined into a single file (separated using a newline and the `---` string), or they can span multiple files passed in on the command line. Pachelbel can also read directories of configuration files, but does not do so recursively.
+# Multiple YAML configuration objects can be combined into a single file separated
+# using the standard yaml separator: `\n---\n`.
+---
+config_version: 2
+
+# Objects of config_version == 2 have a new top-level field, object type. There is
+# currently only one v2 object, an endpoint_map. These objects define conversions
+# to be run against the deployment endpoints returned by Compose.io.
+#
+# endpoint_map objects are very basic structures, mapping one URL hostname to
+# another.
+object_type: endpoint_map
+  cluster-benjdewan-01.compose.direct: haproxy-v1.legacy.com
+  haproxy-v1.legacy.com: endpoint.example.net
+
+# endpoint_maps are interpolated recursively, so given these mappings if my
+# postgres deployment, 'postgres-benjdewan-01' returns the connection string:
+#    postgres://admin:PASSWORD@cluster-benjdewan-01.compose.direct:45678/compose
+#
+# the output of pachelbel will be
+#    name: postgres-benjdewan-01
+#    type: postgresql
+#    connections:
+#      - scheme: postgres
+#        host: endpoint.example.net
+#        username: admin
+#        password: PASSWORD
+#        port: 45678
+#        path: /compose
+```
 
 ## Output Schema
 

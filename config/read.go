@@ -32,6 +32,25 @@ import (
 	"github.com/ghodss/yaml"
 )
 
+// Config returns parsed configuration objects to be
+// consumed by pachelbel for provisioning
+type Config struct {
+	// Deployments is a slice of all the deployments to be provisioned.
+	// This slice has been filtered by cluster and/or datacenter if any
+	// filters were set.
+	Deployments []connection.Deployment
+
+	// EndpointMap is a list of mappings to perform to translate
+	// the connection strings returned by Compose.io. This is most
+	// useful with Enterprise accounts using clusters that expose
+	// public endpoints, but the Compose API only returns the
+	// private ones.
+	EndpointMap map[string]string
+
+	// Internal fields
+	dNames map[string]struct{}
+}
+
 // BuildClusterFilter accepts a list of cluster names to filter
 // configuration data. Only deployments to clusters in the filter
 // are returned by ReadFiles()
@@ -58,64 +77,54 @@ func BuildDatacenterFilter(datacenters []string) {
 // data into deployment object. Both configuration files and directories
 // of configuration files are valid arguments, but directories are not
 // read recursively, only immediate child files are parsed.
-func ReadFiles(args []string) ([]connection.Deployment, error) {
-	names := make(map[string]struct{})
-	deployments := []connection.Deployment{}
+func ReadFiles(args []string) (*Config, error) {
+	cfg := newConfig()
+
 	for _, path := range args {
 		info, err := os.Stat(path)
 		if err != nil {
-			return deployments, err
+			return cfg, err
 		}
-		newDeployments := []deploymentV1{}
 		switch mode := info.Mode(); {
 		case mode.IsDir():
-			newDeployments, err = readDir(path)
+			err = cfg.readDir(path)
 		case mode.IsRegular():
-			newDeployments, err = readFile(path)
+			err = cfg.readFile(path)
 		}
 		if err != nil {
-			return deployments, err
-		}
-		for _, d := range newDeployments {
-			if _, ok := names[d.Name]; ok {
-				return deployments, fmt.Errorf("Deployment names must be unique, but '%s' is specified more than once",
-					d.Name)
-			}
-			names[d.Name] = struct{}{}
-			deployments = append(deployments, connection.Deployment(d))
+			return cfg, err
 		}
 	}
-	return deployments, nil
+	return cfg, nil
 }
 
-func readDir(root string) ([]deploymentV1, error) {
-	deployments := []deploymentV1{}
+func newConfig() *Config {
+	return &Config{
+		Deployments: []connection.Deployment{},
+		EndpointMap: make(map[string]string),
+		dNames:      make(map[string]struct{}),
+	}
+}
+
+func (cfg *Config) readDir(root string) error {
 	walkErr := filepath.Walk(root, func(path string, info os.FileInfo, readErr error) error {
 		if readErr != nil {
 			return readErr
-		}
-		if path == root {
-			return nil
-		}
-		if info.IsDir() {
+		} else if path == root || info.IsDir() {
 			fmt.Printf("Skipping %v.\n", path)
 			return nil
-		}
-		newDeployments, err := readFile(path)
-		if err != nil {
+		} else if err := cfg.readFile(path); err != nil {
 			return err
 		}
-		deployments = append(deployments, newDeployments...)
 		return nil
 	})
-	return deployments, walkErr
+	return walkErr
 }
 
-func readFile(path string) ([]deploymentV1, error) {
-	deployments := []deploymentV1{}
+func (cfg *Config) readFile(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
-		return deployments, err
+		return err
 	}
 	defer func() {
 		if closeErr := file.Close(); closeErr != nil {
@@ -125,34 +134,94 @@ func readFile(path string) ([]deploymentV1, error) {
 		}
 	}()
 
-	return readConfigs(file)
+	return cfg.readConfigs(file)
 }
 
-func readConfigs(r io.Reader) ([]deploymentV1, error) {
-	deployments := []deploymentV1{}
-
+func (cfg *Config) readConfigs(r io.Reader) error {
 	scanner := bufio.NewScanner(r)
 	scanner.Split(splitYAMLObjects)
 	for scanner.Scan() {
-		deployment, err := readConfig(scanner.Bytes())
-		if err != nil {
-			return deployments, err
+		if err := cfg.readConfig(scanner.Bytes()); err != nil {
+			return err
 		}
-		if filtered(deployment) {
-			continue
-		}
-		deployments = append(deployments, deployment)
 	}
-	return deployments, nil
+	return nil
 }
 
-func readConfig(blob []byte) (deploymentV1, error) {
-	var deployment deploymentV1
-	if err := yaml.Unmarshal(blob, &deployment); err != nil {
-		return deployment, err
+type objectMetadata struct {
+	ConfigVersion int    `json:"config_version"`
+	ObjectType    string `json:"object_type"`
+}
+
+func (cfg *Config) readConfig(blob []byte) error {
+	var metadata objectMetadata
+	if err := yaml.Unmarshal(blob, &metadata); err != nil {
+		return err
 	}
-	err := validate(deployment, string(blob))
-	return deployment, err
+	switch metadata.ConfigVersion {
+	case 1:
+		return cfg.readConfigV1(blob)
+	case 2:
+		return cfg.readConfigV2(metadata.ObjectType, blob)
+	default:
+		return fmt.Errorf("Expected `config_version` to be '1' or '2' but saw '%d'",
+			metadata.ConfigVersion)
+
+	}
+	//unreachable
+	return nil
+}
+
+func (cfg *Config) readConfigV2(objectType string, blob []byte) error {
+	switch objectType {
+	case "endpoint_map":
+		return cfg.readEndpointMapV2(blob)
+	default:
+		return fmt.Errorf("'%s' is not a supported object_type", objectType)
+	}
+	//unreachable
+	return nil
+}
+
+func (cfg *Config) readEndpointMapV2(blob []byte) error {
+	var e endpointMapV2
+	if err := yaml.Unmarshal(blob, &e); err != nil {
+		return err
+	}
+
+	for src, dst := range e.EndpointMap {
+		if existing, ok := cfg.EndpointMap[src]; ok && existing != dst {
+			return fmt.Errorf("Conflicting endpoint mappings:\n%s => %s\nand\n%s => %s", src, existing, src, dst)
+		}
+		cfg.EndpointMap[src] = dst
+	}
+	return nil
+}
+
+func (cfg *Config) readConfigV1(blob []byte) error {
+	var (
+		d   deploymentV1
+		err error
+	)
+	if err = yaml.Unmarshal(blob, &d); err != nil {
+		return err
+	} else if err = validateV1(d, string(blob)); err != nil {
+		return err
+	}
+
+	deployment := connection.Deployment(d)
+	if filtered(deployment) {
+		return nil
+	}
+
+	if _, ok := cfg.dNames[d.Name]; ok {
+		return fmt.Errorf("Deployment names must be unique, but '%s' is specified more than once",
+			d.Name)
+	}
+	cfg.dNames[d.Name] = struct{}{}
+	cfg.Deployments = append(cfg.Deployments, deployment)
+
+	return nil
 }
 
 func splitYAMLObjects(data []byte, atEOF bool) (advance int, token []byte, err error) {
@@ -174,8 +243,8 @@ func splitYAMLObjects(data []byte, atEOF bool) (advance int, token []byte, err e
 var clusterFilter map[string]struct{}
 var datacenterFilter map[string]struct{}
 
-func filtered(deployment deploymentV1) bool {
-	if len(deployment.Cluster) > 0 {
+func filtered(deployment connection.Deployment) bool {
+	if len(deployment.GetCluster()) > 0 {
 		// At this point the deployment has already been validated, so
 		// we can safely assume this means a cluster deployment
 		return filterByCluster(deployment)
@@ -183,18 +252,18 @@ func filtered(deployment deploymentV1) bool {
 	return filterByDatacenter(deployment)
 }
 
-func filterByCluster(d deploymentV1) bool {
+func filterByCluster(d connection.Deployment) bool {
 	if len(clusterFilter) == 0 {
 		return false
 	}
-	_, ok := clusterFilter[d.Cluster]
+	_, ok := clusterFilter[d.GetCluster()]
 	return !ok
 }
 
-func filterByDatacenter(d deploymentV1) bool {
+func filterByDatacenter(d connection.Deployment) bool {
 	if len(datacenterFilter) == 0 {
 		return false
 	}
-	_, ok := datacenterFilter[d.Datacenter]
+	_, ok := datacenterFilter[d.GetDatacenter()]
 	return !ok
 }

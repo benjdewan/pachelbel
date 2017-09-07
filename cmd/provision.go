@@ -47,7 +47,7 @@ configuration no actions are taken.`,
 func runProvision(cmd *cobra.Command, args []string) {
 	assertCanStart(args)
 
-	deployments, err := readConfigs(args)
+	cfg, err := readConfigs(args)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -66,9 +66,9 @@ func runProvision(cmd *cobra.Command, args []string) {
 		}
 	}()
 
-	provision(cxn, deployments)
+	provision(cxn, cfg.Deployments)
 
-	writeOutput(cxn, viper.GetString("output"))
+	writeOutput(cxn, cfg.EndpointMap)
 }
 
 func provision(cxn *connection.Connection, deployments []connection.Deployment) {
@@ -77,13 +77,13 @@ func provision(cxn *connection.Connection, deployments []connection.Deployment) 
 	flush(errQueue)
 }
 
-func writeOutput(cxn *connection.Connection, file string) {
+func writeOutput(cxn *connection.Connection, endpointMap map[string]string) {
 	errQueue := queue.New(0)
-	cxn.ConnectionYAML(viper.GetString("output"), errQueue)
+	cxn.ConnectionYAML(endpointMap, viper.GetString("output"), errQueue)
 	flush(errQueue)
 }
 
-func readConfigs(paths []string) ([]connection.Deployment, error) {
+func readConfigs(paths []string) (*config.Config, error) {
 	config.BuildClusterFilter(viper.GetStringSlice("cluster"))
 	config.BuildDatacenterFilter(viper.GetStringSlice("datacenter"))
 
