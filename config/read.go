@@ -168,8 +168,6 @@ func (cfg *Config) readConfig(blob []byte) error {
 			metadata.ConfigVersion)
 
 	}
-	//unreachable
-	return nil
 }
 
 func (cfg *Config) readConfigV2(objectType string, blob []byte) error {
@@ -179,8 +177,6 @@ func (cfg *Config) readConfigV2(objectType string, blob []byte) error {
 	default:
 		return fmt.Errorf("'%s' is not a supported object_type", objectType)
 	}
-	//unreachable
-	return nil
 }
 
 func (cfg *Config) readEndpointMapV2(blob []byte) error {
