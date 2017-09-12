@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"time"
 
 	compose "github.com/benjdewan/gocomposeapi"
@@ -145,10 +146,24 @@ func fetchDeployments(cxn *Connection) error {
 		return fmt.Errorf("Failed to get deployments:\n%s", errsOut(errs))
 	}
 
-	for _, deployment := range *deployments {
-		cxn.deploymentsByName.Store(deployment.Name, &deployment)
+	var wg sync.WaitGroup
+	q := queue.New(0)
+	wg.Add(len(*deployments))
+	for _, partial := range *deployments {
+		go func(id string) {
+			deployment, errs := cxn.client.GetDeployment(id)
+
+			if len(errs) != 0 {
+				msg := fmt.Errorf("Unable to get deployment information for '%s': %v", id, errs)
+				enqueue(q, msg)
+			}
+			cxn.deploymentsByName.Store(deployment.Name, deployment)
+			wg.Done()
+		}(partial.ID)
 	}
-	return nil
+	wg.Wait()
+
+	return flushErrors(q)
 }
 
 func fetchAccountID(client *compose.Client) (string, error) {
@@ -186,4 +201,20 @@ func errsOut(errs []error) string {
 		msgs = append(msgs, err.Error())
 	}
 	return strings.Join(msgs, "\n")
+}
+
+func flushErrors(q *queue.Queue) error {
+	if q.Empty() {
+		q.Dispose()
+		return nil
+	}
+	length := q.Len()
+	items, qErr := q.Get(length)
+	if qErr != nil {
+		// Get() only returns an error if Dispose() has already
+		// been called on the queue.
+		panic(qErr)
+	}
+	q.Dispose()
+	return fmt.Errorf("%d fatal error(s) occurred:\n%v", length, items)
 }

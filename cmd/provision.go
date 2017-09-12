@@ -187,6 +187,6 @@ func flush(errQueue *queue.Queue) {
 			log.Fatalf("Only errors should be in the error queue. Found %v", item)
 		}
 	}
-	os.Exit(1)
 	errQueue.Dispose()
+	os.Exit(1)
 }
