@@ -8,16 +8,16 @@ Pull requests and issues are always welcome. Bad attitudes are not. Collaborator
     ```bash
     $ mkdir go ; cd go
     $ export GOPATH=$PWD
-    $ mkdir -p src/github.com/<your_namespace>
+    $ mkdir -p src/github.com/benjdewan
     ```
 
 4.  Clone your fork
     ```bash
-    $ cd src/github.com/<your_namespace>
-    $ git clone git@github.com:<your_namespace>/pachelbel
+    $ cd src/github.com/benjdewan
+    $ git clone git@github.com:benjdewan/pachelbel
     $ cd pachelbel
     $ ls
-    CONTRIBUTING.md LICENSE         Makefile        README.md       cmd             config          connection      main.go         vendor
+    CONTRIBUTING.md LICENSE         Makefile        README.md       cmd             config          connection      main.go         progress        vendor
     ```
 5. Set up upstream repo tracking
     ```bash
