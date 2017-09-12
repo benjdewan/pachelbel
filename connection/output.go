@@ -93,8 +93,12 @@ func newConnectionYAML(endpointMap map[string]string, u *url.URL) connectionYAML
 	password, _ := u.User.Password()
 	host := u.Hostname()
 
-	// host renaming can be recursive
-	for {
+	// host renaming can be recursive, but cycle chasing is difficult, so for
+	// now do at most 8 layers of mapping and no more
+	for i := 0; i < 7; i++ {
+		if i == 15 {
+			panic("Endpoint mapping is cyclic or deeper than 7 layers")
+		}
 		if rename, ok := endpointMap[host]; ok {
 			host = rename
 			continue
