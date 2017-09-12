@@ -21,7 +21,6 @@
 package connection
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -71,41 +70,9 @@ type Connection struct {
 
 // codebeat:enable[TOO_MANY_IVARS]
 
-// Init creates a Connection struct that is used for provisioning
-// Compose deployments. This struct is shared across every
-// Provision call.
-func Init(apiKey, logFile string, pollingInterval int, dryRun bool) (*Connection, error) {
-	cxn, err := newConnection(logFile, pollingInterval, dryRun)
-	if err != nil {
-		return cxn, err
-	}
-
-	cxn.client, err = createClient(apiKey, cxn.logFile)
-	if err != nil {
-		return cxn, err
-	}
-
-	cxn.accountID, err = fetchAccountID(cxn.client)
-	if err != nil {
-		return cxn, err
-	}
-
-	cxn.clusterIDsByName, err = fetchClusters(cxn.client)
-	if err != nil {
-		return cxn, err
-	}
-
-	cxn.datacenters, err = fetchDatacenters(cxn.client)
-	if err != nil {
-		return cxn, err
-	}
-
-	err = fetchDeployments(cxn)
-
-	return cxn, err
-}
-
-func newConnection(logFile string, pollingInterval int, dryRun bool) (*Connection, error) {
+// New creates a new Connection struct, but does not initialize the Compose
+// connection. Invoke Init() to do so.
+func New(logFile string, pollingInterval int, dryRun bool) (*Connection, error) {
 	cxn := &Connection{
 		newDeploymentIDs:  &syncmap.Map{},
 		deploymentsByName: &syncmap.Map{},
@@ -121,28 +88,56 @@ func newConnection(logFile string, pollingInterval int, dryRun bool) (*Connectio
 	return cxn, err
 }
 
+// Init will establish the connection to Compose for the given Connection object
+// and populate it with current information of existing deployments and clusters
+func (cxn *Connection) Init(apiKey string) error {
+	var err error
+	cxn.client, err = createClient(apiKey, cxn.logFile)
+	if err != nil {
+		return err
+	}
+
+	cxn.accountID, err = fetchAccountID(cxn.client)
+	if err != nil {
+		return err
+	}
+
+	cxn.clusterIDsByName, err = fetchClusters(cxn.client)
+	if err != nil {
+		return err
+	}
+
+	cxn.datacenters, err = fetchDatacenters(cxn.client)
+	if err != nil {
+		return err
+	}
+
+	return fetchDeployments(cxn)
+}
+
 // Provision will create a new deployment or update an existing deployment
 // to the size and version specified as well as ensure every team role listed
 // is applied to that deployment.
-func (cxn *Connection) Provision(deployments []Deployment, errQueue *queue.Queue) {
+func (cxn *Connection) Provision(deployments []Deployment) error {
 	deployers := cxn.listDeployers(deployments)
 
 	var wg sync.WaitGroup
 	wg.Add(len(deployers))
 
+	q := queue.New(0)
 	cxn.pb.Start()
 	for _, deployer := range deployers {
-		go runDeployer(deployer, cxn, errQueue, &wg)
+		go runDeployer(deployer, cxn, q, &wg)
 	}
 	wg.Wait()
 	cxn.pb.Stop()
+	return flushErrors(q)
 }
 
 // ConnectionYAML writes out the connection strings for all the
 // provisioned deployments as a YAML object to the provided file.
-func (cxn *Connection) ConnectionYAML(endpointMap map[string]string, outFile string, errQueue *queue.Queue) {
-	fmt.Printf("Writing connection strings to '%v'\n", outFile)
-
+func (cxn *Connection) ConnectionYAML(endpointMap map[string]string, outFile string) error {
+	q := queue.New(0)
 	connections := []map[string]outputYAML{}
 	cxn.newDeploymentIDs.Range(func(key, value interface{}) bool {
 		var err error
@@ -150,14 +145,14 @@ func (cxn *Connection) ConnectionYAML(endpointMap map[string]string, outFile str
 		if err == nil {
 			return true
 		}
-		enqueue(errQueue, err)
+		enqueue(q, err)
 		return false
 	})
 
 	if err := writeConnectionYAML(connections, outFile); err != nil {
-		enqueue(errQueue, err)
-		return
+		enqueue(q, err)
 	}
+	return flushErrors(q)
 }
 
 // Close closes any open connections and/or files possessed by the Connection

@@ -22,11 +22,9 @@ package cmd
 
 import (
 	"log"
-	"os"
 
 	"github.com/benjdewan/pachelbel/config"
 	"github.com/benjdewan/pachelbel/connection"
-	"github.com/golang-collections/go-datastructures/queue"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -52,13 +50,15 @@ func runProvision(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	cxn, err := connection.Init(viper.GetString("api-key"),
-		viper.GetString("log-file"),
+	cxn, err := connection.New(viper.GetString("log-file"),
 		viper.GetInt("polling-interval"),
 		viper.GetBool("dry-run"))
 	if err != nil {
 		log.Fatal(err)
+	}
 
+	if err := cxn.Init(viper.GetString("api-key")); err != nil {
+		log.Fatal(err)
 	}
 	defer func() {
 		if closeErr := cxn.Close(); closeErr != nil {
@@ -72,15 +72,17 @@ func runProvision(cmd *cobra.Command, args []string) {
 }
 
 func provision(cxn *connection.Connection, deployments []connection.Deployment) {
-	errQueue := queue.New(int64(len(deployments)))
-	cxn.Provision(deployments, errQueue)
-	flush(errQueue)
+	if err := cxn.Provision(deployments); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func writeOutput(cxn *connection.Connection, endpointMap map[string]string) {
-	errQueue := queue.New(0)
-	cxn.ConnectionYAML(endpointMap, viper.GetString("output"), errQueue)
-	flush(errQueue)
+	dst := viper.GetString("output")
+	log.Printf("Writing connection strings to '%v'\n", dst)
+	if err := cxn.ConnectionYAML(endpointMap, dst); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func readConfigs(paths []string) (*config.Config, error) {
@@ -166,27 +168,4 @@ func addLogFileFlag() {
 				all Compose API requests and write them, as well
 				as the reponses, to the specified log file`)
 	viper.BindPFlag("log-file", provisionCmd.Flags().Lookup("log-file"))
-}
-
-func flush(errQueue *queue.Queue) {
-	if errQueue.Empty() {
-		errQueue.Dispose()
-		return
-	}
-	items, qErr := errQueue.Get(errQueue.Len())
-	if qErr != nil {
-		// Get() only returns an error if Dispose() has already
-		// been called on the queue.
-		panic(qErr)
-	}
-	for _, unknown := range items {
-		switch item := unknown.(type) {
-		case error:
-			log.Printf("Error: %v", item)
-		default:
-			log.Fatalf("Only errors should be in the error queue. Found %v", item)
-		}
-	}
-	errQueue.Dispose()
-	os.Exit(1)
 }
