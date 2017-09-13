@@ -66,13 +66,13 @@ func runProvision(cmd *cobra.Command, args []string) {
 		}
 	}()
 
-	provision(cxn, cfg.Deployments)
+	process(cxn, cfg.Accessors)
 
 	writeOutput(cxn, cfg.EndpointMap)
 }
 
-func provision(cxn *connection.Connection, deployments []connection.Deployment) {
-	if err := cxn.Provision(deployments); err != nil {
+func process(cxn *connection.Connection, accessors []connection.Accessor) {
+	if err := cxn.Process(accessors); err != nil {
 		log.Fatal(err)
 	}
 }

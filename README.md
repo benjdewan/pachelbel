@@ -8,111 +8,12 @@ pachelbel is designed to be an idempotent provisioning tool for [IBM Compose](co
 ## Usage
 pachelbel is built atop cobra and has extensive information available using `--help`.
 
-## Configuration schema
-pachelbel is designed to read yaml configuration files. The YAML objects read in must adhere to the following schema:
+## Input schema
+pachelbel is designed to read yaml configuration files. The YAML objects read in must adhere to the following schemas:
+* [v1 schema](schema/v1.md)
+* [v2 schema](schema/v2.md)
 
-```yaml
-# The config is versioned. Objects of different config_versions can be used in
-# a single pachelbel provision run.
-config_version: 1
-
-# Compose offers many database types.
-type: mongodb|rethinkdb|postgresql|redis|rabbitmq|etcd|elastic_search|mysql|janusgraph
-
-# By default the latest stable version of the specified databse type is used.
-# Use the 'version' field to specify an older version, or if you want to update
-# an existing deployment to a newer version
-version: 3.2.10
-
-# pachelbel supports deployments to datacenters *or* clusters *or* tags. You
-# cannot specify more than one of these fields for any single deployment.
-#
-# pachelbel will attempt to map the cluster-name to an ID. If that cluster
-# does not exist or is not visible when using the provided API token, pachelbel
-# will throw an error. There is currently no support for the creation/deleting
-# of clusters.
-cluster: my-softlayer-cluster
-
-# pachelbel supports deployments to datacenters *or* clusters *or* tags. You
-# cannot specify more than one of these fields for any single deployment.
-#
-# the value provided here should be a datacenter slug as returned by the compose
-# API
-datacenter: aws:us-east-1
-
-# pachelbel supports deployments to datacenters *or* clusters *or* tags. You
-# cannot specify more than one of these fields for any single deployment.
-#
-# pachelbel does not currently validate that the provided tags exist, but
-# provisioning a deployment will fail if they do not.
-tags:
-  - dev
-  - benjdewan
-
-# The name of the deployment must be <64 characters, but is otherwise very
-# flexible.
-name: postgres-benjdewan-01
-
-# notes can include additional metadata about this deployment
-notes: |
-    This is a test of pachelbel
-
-# Optionally specify the scaling size of the deployment. The default is '1'
-scaling: 2
-
-# For databases that support ssl, use this line to ensure it is set.
-ssl: true
-
-# The timeout period, in seconds, to wait for provisioning recipes (creating
-# new deployments, scaling existing deployments &c.) to complete. If no recipes
-# are triggered, no waiting will occur.
-#
-# If this field is not set a default timeout of 300 seconds (5 minutes) is used.
-timeout: 900
-
-# If you want to make this deployment visible to anyone other than the user that
-# created it, you should create a team via the web interface, grab the team ID, and
-# then specify it here along with the roles that team should have:
-teams:
-  - id: "123456789"
-    role: "admin"
-  - id: "123456789"
-    role: "developer"
-
-# WiredTiger is a storage engine option for MongoDB. Setting this field for
-# any other type of deployment will throw an error
-wired_tiger: true
-
-# Multiple YAML configuration objects can be combined into a single file separated
-# using the standard yaml separator: `\n---\n`.
----
-config_version: 2
-
-# Objects of config_version == 2 have a new top-level field, object type. There is
-# currently only one v2 object, an endpoint_map. These objects define conversions
-# to be run against the deployment endpoints returned by Compose.io.
-#
-# endpoint_map objects are very basic structures, mapping one URL hostname to
-# another.
-object_type: endpoint_map
-  cluster-benjdewan-01.compose.direct: haproxy-v1.legacy.com
-  haproxy-v1.legacy.com: endpoint.example.net
-
-# endpoint_maps are interpolated recursively, so given these mappings if my
-# postgres deployment, 'postgres-benjdewan-01' returns the connection string:
-#    postgres://admin:PASSWORD@cluster-benjdewan-01.compose.direct:45678/compose
-#
-# the output of pachelbel will be
-#    name: postgres-benjdewan-01
-#    type: postgresql
-#    connections:
-#      - scheme: postgres
-#        host: endpoint.example.net
-#        username: admin
-#        password: PASSWORD
-#        port: 45678
-#        path: /compose
-```
+Each object is versioned, and the v2 schema does not yet support the functionality of the v1 schema, so the mixing of objects from different schemas is both supported and expected.
 
 ## Output Schema
 

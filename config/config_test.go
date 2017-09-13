@@ -299,4 +299,30 @@ endpoint_map:
   bar: qux`,
 		valid: true,
 	},
+	{
+		config: `config_version: 2
+object_type: deployment_client
+name: foo
+type: redis`,
+		valid: true,
+	},
+	{
+		config: `config_version: 2
+object_type: deployment_client
+name: foo
+type: bar`,
+		valid: false,
+	},
+	{
+		config: `config_version: 2
+object_type: deployment_client
+name: foo`,
+		valid: false,
+	},
+	{
+		config: `config_version: 2
+object_type: deployment_client
+type: redis`,
+		valid: false,
+	},
 }

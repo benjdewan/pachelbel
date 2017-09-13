@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"sync"
 	"time"
 
 	compose "github.com/benjdewan/gocomposeapi"
@@ -138,32 +137,6 @@ func fetchDatacenters(client *compose.Client) (map[string]struct{}, error) {
 	}
 
 	return datacenters, nil
-}
-
-func fetchDeployments(cxn *Connection) error {
-	deployments, errs := cxn.client.GetDeployments()
-	if len(errs) != 0 || deployments == nil {
-		return fmt.Errorf("Failed to get deployments:\n%s", errsOut(errs))
-	}
-
-	var wg sync.WaitGroup
-	q := queue.New(0)
-	wg.Add(len(*deployments))
-	for _, partial := range *deployments {
-		go func(id string) {
-			deployment, errs := cxn.client.GetDeployment(id)
-
-			if len(errs) != 0 {
-				msg := fmt.Errorf("Unable to get deployment information for '%s': %v", id, errs)
-				enqueue(q, msg)
-			}
-			cxn.deploymentsByName.Store(deployment.Name, deployment)
-			wg.Done()
-		}(partial.ID)
-	}
-	wg.Wait()
-
-	return flushErrors(q)
 }
 
 func fetchAccountID(client *compose.Client) (string, error) {

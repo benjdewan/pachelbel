@@ -26,7 +26,8 @@ import (
 	compose "github.com/benjdewan/gocomposeapi"
 )
 
-func update(cxn *Connection, deployment Deployment) error {
+func update(cxn *Connection, accessor Accessor) error {
+	deployment := accessor.(Deployment)
 	existing, ok := cxn.getDeploymentByName(deployment.GetName())
 	if !ok {
 		return fmt.Errorf("Attempting to update '%s', but it doesn't exist",
@@ -51,7 +52,7 @@ func update(cxn *Connection, deployment Deployment) error {
 
 	// Changing versions and sizes can change the deployment ID. Ensure
 	// we have the latest/live value
-	updatedDeployment, errs := cxn.client.GetDeploymentByName(deployment.GetName())
+	updatedDeployment, errs := cxn.client.GetDeploymentByName(existing.Name)
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to get deployment information for '%s':\n%v",
 			deployment.GetName(), errs)
@@ -133,4 +134,14 @@ func validTransition(transitions []compose.VersionTransition, deployment Deploym
 	}
 	return fmt.Errorf("Cannot upgrade '%s' to version '%s'.",
 		deployment.GetName(), deployment.GetVersion())
+}
+
+func dryRunUpdate(cxn *Connection, accessor Accessor) error {
+	deployment, ok := cxn.getDeploymentByName(accessor.GetName())
+	if !ok {
+		// This should never happen
+		panic("syncmap integrity failure")
+	}
+	cxn.newDeploymentIDs.Store(deployment.ID, struct{}{})
+	return nil
 }

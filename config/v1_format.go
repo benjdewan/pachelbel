@@ -48,6 +48,12 @@ type TeamV1 struct {
 	Role string `json:"role"`
 }
 
+// IsOwner will always return true because a deployment object is for
+// creating/editing a deployment owned by the config provider
+func (d deploymentV1) IsOwner() bool {
+	return true
+}
+
 // GetName returns the name of the deployment
 func (d deploymentV1) GetName() string {
 	return d.Name

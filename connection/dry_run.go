@@ -51,21 +51,6 @@ var userpass = [][]string{
 	{"alice", "Ez57510qVFnK7obJYKr3"},
 }
 
-func dryRunCreate(cxn *Connection, deployment Deployment) error {
-	cxn.newDeploymentIDs.Store(fakeID(deployment), struct{}{})
-	return nil
-}
-
-func dryRunUpdate(cxn *Connection, deployment Deployment) error {
-	existing, ok := cxn.getDeploymentByName(deployment.GetName())
-	if !ok {
-		return fmt.Errorf("Attempting to update '%s', but it doesn't exist",
-			deployment.GetName())
-	}
-	cxn.newDeploymentIDs.Store(existing.ID, struct{}{})
-	return nil
-}
-
 func fakeOutputYAML(id string) map[string]outputYAML {
 	cxnYAML := make(map[string]outputYAML)
 	segments := strings.Split(id, "::")
@@ -122,9 +107,8 @@ func fakeCABody() []byte {
 	return encData
 }
 
-func fakeID(deployment Deployment) string {
-	return fmt.Sprintf("%s::%s", deployment.GetType(),
-		deployment.GetName())
+func fakeID(deploymentType, deploymentName string) string {
+	return fmt.Sprintf("%s::%s", deploymentType, deploymentName)
 }
 
 func isFake(id string) bool {

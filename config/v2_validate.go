@@ -20,23 +20,20 @@
 
 package config
 
-type endpointMapV2 struct {
-	EndpointMap map[string]string `json:"endpoint_map"`
-}
+import (
+	"fmt"
+	"strings"
+)
 
-type deploymentClientV2 struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
+func validateDeploymentClientV2(d deploymentClientV2, input string) error {
+	errs := []string{}
 
-func (d deploymentClientV2) IsOwner() bool {
-	return false
-}
+	errs = validateType(d.Type, errs)
+	errs = validateName(d.Name, errs)
+	if len(errs) == 0 {
+		return nil
+	}
 
-func (d deploymentClientV2) GetName() string {
-	return d.Name
-}
-
-func (d deploymentClientV2) GetType() string {
-	return d.Type
+	return fmt.Errorf("Errors occurred while parsing the following deployment object:\n%s\nErrors:\n%s",
+		input, strings.Join(errs, "\n"))
 }

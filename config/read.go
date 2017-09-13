@@ -35,10 +35,13 @@ import (
 // Config returns parsed configuration objects to be
 // consumed by pachelbel for provisioning
 type Config struct {
-	// Deployments is a slice of all the deployments to be provisioned.
-	// This slice has been filtered by cluster and/or datacenter if any
-	// filters were set.
-	Deployments []connection.Deployment
+	// Accessors is a slice of all the deployments to be provisioned
+	// and any that need to be looked up.
+	//
+	// The deployments to be provisioned in this slice have been
+	// filtered by cluster and/or datacenter if those filters were
+	// set.
+	Accessors []connection.Accessor
 
 	// EndpointMap is a list of mappings to perform to translate
 	// the connection strings returned by Compose.io. This is most
@@ -100,7 +103,7 @@ func ReadFiles(args []string) (*Config, error) {
 
 func newConfig() *Config {
 	return &Config{
-		Deployments: []connection.Deployment{},
+		Accessors:   []connection.Accessor{},
 		EndpointMap: make(map[string]string),
 		dNames:      make(map[string]struct{}),
 	}
@@ -174,9 +177,28 @@ func (cfg *Config) readConfigV2(objectType string, blob []byte) error {
 	switch objectType {
 	case "endpoint_map":
 		return cfg.readEndpointMapV2(blob)
+	case "deployment_client":
+		return cfg.readDeploymentClientV2(blob)
 	default:
 		return fmt.Errorf("'%s' is not a supported object_type", objectType)
 	}
+}
+
+func (cfg *Config) readDeploymentClientV2(blob []byte) error {
+	var d deploymentClientV2
+	if err := yaml.Unmarshal(blob, &d); err != nil {
+		return err
+	}
+	if err := validateDeploymentClientV2(d, string(blob)); err != nil {
+		return err
+	}
+	if _, ok := cfg.dNames[d.Name]; ok {
+		return fmt.Errorf("Deployment names must be unique, but '%s' is specified more than once",
+			d.Name)
+	}
+	cfg.dNames[d.Name] = struct{}{}
+	cfg.Accessors = append(cfg.Accessors, connection.Accessor(d))
+	return nil
 }
 
 func (cfg *Config) readEndpointMapV2(blob []byte) error {
@@ -215,7 +237,7 @@ func (cfg *Config) readConfigV1(blob []byte) error {
 			d.Name)
 	}
 	cfg.dNames[d.Name] = struct{}{}
-	cfg.Deployments = append(cfg.Deployments, deployment)
+	cfg.Accessors = append(cfg.Accessors, deployment.(connection.Accessor))
 
 	return nil
 }

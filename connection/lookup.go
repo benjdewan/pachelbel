@@ -18,25 +18,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package config
+package connection
 
-type endpointMapV2 struct {
-	EndpointMap map[string]string `json:"endpoint_map"`
+import "fmt"
+
+func lookup(cxn *Connection, accessor Accessor) error {
+	deployment, errs := cxn.client.GetDeploymentByName(accessor.GetName())
+	if len(errs) != 0 {
+		return fmt.Errorf("Failed to lookup '%s':\n%v", accessor.GetName(), errs)
+	}
+	cxn.newDeploymentIDs.Store(deployment.ID, struct{}{})
+	return nil
 }
 
-type deploymentClientV2 struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
-
-func (d deploymentClientV2) IsOwner() bool {
-	return false
-}
-
-func (d deploymentClientV2) GetName() string {
-	return d.Name
-}
-
-func (d deploymentClientV2) GetType() string {
-	return d.Type
+func dryRunLookup(cxn *Connection, accessor Accessor) error {
+	deployment, errs := cxn.client.GetDeploymentByName(accessor.GetName())
+	if len(errs) != 0 {
+		// This is a dry run, assume it's been created
+		cxn.newDeploymentIDs.Store(fakeID(accessor.GetType(), accessor.GetName()), struct{}{})
+		return nil
+	}
+	cxn.newDeploymentIDs.Store(deployment.ID, struct{}{})
+	return nil
 }

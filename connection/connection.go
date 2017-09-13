@@ -31,8 +31,19 @@ import (
 	"golang.org/x/sync/syncmap"
 )
 
-// Deployment is the interface for deployment objects that
-// the Connection struct expects as input to Provision()
+// Accessor is the interface for any Compose Deployment information request.
+// To make any deployment mutations (creating new deployments or updating
+// existing ones), the provided object must also implement the Deployment
+// interface.
+type Accessor interface {
+	IsOwner() bool
+	GetName() string
+	GetType() string
+}
+
+// Deployment is the interface for mutatable Compose deployments. For any
+// Deployment object pachelbel will create or update a Compose deployment
+// to match the name, type, size, location &c. to match the information provided
 type Deployment interface {
 	ClusterDeployment() bool
 	TagDeployment() bool
@@ -108,26 +119,29 @@ func (cxn *Connection) Init(apiKey string) error {
 	}
 
 	cxn.datacenters, err = fetchDatacenters(cxn.client)
-	if err != nil {
-		return err
-	}
-
-	return fetchDeployments(cxn)
+	return err
 }
 
-// Provision will create a new deployment or update an existing deployment
-// to the size and version specified as well as ensure every team role listed
-// is applied to that deployment.
-func (cxn *Connection) Provision(deployments []Deployment) error {
-	deployers := cxn.listDeployers(deployments)
+// Process reads through the provided slice of Accessors, creates or edits
+// deployments where necessary or looks up existing deployments depending on
+// whether a provided Accessor is an owner or not
+func (cxn *Connection) Process(accessors []Accessor) error {
+	runners := cxn.newRunners(accessors)
 
 	var wg sync.WaitGroup
-	wg.Add(len(deployers))
+	wg.Add(len(runners))
 
 	q := queue.New(0)
 	cxn.pb.Start()
-	for _, deployer := range deployers {
-		go runDeployer(deployer, cxn, q, &wg)
+	for _, runner := range runners {
+		go func(r cxnRunner) {
+			if err := r.run(cxn, r.accessor); err != nil {
+				cxn.pb.Error(r.accessor.GetName())
+				enqueue(q, err)
+			}
+			cxn.pb.Done(r.accessor.GetName())
+			wg.Done()
+		}(runner)
 	}
 	wg.Wait()
 	cxn.pb.Stop()

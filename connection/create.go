@@ -26,16 +26,16 @@ import (
 	compose "github.com/benjdewan/gocomposeapi"
 )
 
-func create(cxn *Connection, deployment Deployment) error {
+func create(cxn *Connection, accessor Accessor) error {
+	deployment := accessor.(Deployment)
 	dParams, err := deploymentParams(deployment, cxn)
 	if err != nil {
 		return err
 	}
 
-	//This needs to be wrapped in retry logic
 	newDeployment, errs := cxn.client.CreateDeployment(dParams)
 	if len(errs) != 0 {
-		return fmt.Errorf("Unable to create '%s': %s\n", deployment.GetName(), errsOut(errs))
+		return fmt.Errorf("Unable to create '%s': %v\n", dParams.Name, errs)
 	}
 
 	if err := cxn.waitOnRecipe(newDeployment.ProvisionRecipeID, deployment.GetTimeout()); err != nil {
@@ -84,8 +84,7 @@ func deploymentParams(deployment Deployment, cxn *Connection) (compose.Deploymen
 
 func setDeploymentType(cxn *Connection, deployment Deployment, dParams compose.DeploymentParams) (compose.DeploymentParams, error) {
 	if deployment.TagDeployment() {
-		//TODO fetch tags and validate that the provided tags exist. Pachelbel will
-		// not support creating tags
+		//TODO fetch tags and validate that the provided tags exist.
 		dParams.ProvisioningTags = deployment.GetTags()
 		return dParams, nil
 	}
@@ -107,4 +106,10 @@ func setDeploymentType(cxn *Connection, deployment Deployment, dParams compose.D
 	}
 	dParams.Datacenter = datacenter
 	return dParams, nil
+}
+
+func dryRunCreate(cxn *Connection, accessor Accessor) error {
+	cxn.newDeploymentIDs.Store(fakeID(accessor.GetType(), accessor.GetName()),
+		struct{}{})
+	return nil
 }

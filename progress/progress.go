@@ -56,14 +56,13 @@ type ProgressBars struct {
 // codebeat:enable[TOO_MANY_IVARS]
 
 const (
-	// ActionUpdate indicates that a deployment is being updated
 	ActionUpdate = "Updating"
-	// ActionCreate indicates that a deployment is being created
 	ActionCreate = "Creating"
-	// ActionDryRunUpdate indicates that a deployment is being "updated"
+	ActionLookup = "Looking up"
+
 	ActionDryRunUpdate = "Pretending to update"
-	// ActionDryRunCreate indicates a deployment is being "created"
 	ActionDryRunCreate = "Pretending to create"
+	ActionDryRunLookup = "Pretending to lookup"
 
 	stateRunning  = "running"
 	stateDone     = "done"
