@@ -38,6 +38,7 @@ var validTypes = map[string]struct{}{
 	"etcd":           {},
 	"mysql":          {},
 	"janusgraph":     {},
+	"disque":         {},
 }
 
 func validateType(deploymentType string, errs []string) []string {
