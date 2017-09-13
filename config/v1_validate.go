@@ -53,20 +53,18 @@ func validateConfigVersionV1(version int, errs []string) []string {
 }
 
 func validateDeploymentTargetV1(cluster, datacenter string, tags, errs []string) []string {
-	if len(cluster) > 0 {
-		if len(datacenter) > 0 || len(tags) > 0 {
-			errs = append(errs,
-				"Exactly one of the 'cluster', 'datacenter', or 'tags' fields must be provided for every deployment\n")
-		}
-	} else if len(datacenter) > 0 {
-		if len(tags) > 0 {
-			errs = append(errs,
-				"Exactly one of the 'cluster', 'datacenter', or 'tags' fields must be provided for every deployment\n")
-		}
-	} else if len(tags) == 0 {
-		errs = append(errs,
-			"Exactly one of the 'cluster', 'datacenter', or 'tags' fields must be provided for every deployment\n")
+	if xor3(len(cluster) > 0, len(datacenter) > 0, len(tags) > 0) {
+		return errs
 	}
-
+	errs = append(errs,
+		"Exactly one of the 'cluster', 'datacenter', or 'tags' fields must be provided for every deployment\n")
 	return errs
+}
+
+func xor3(a, b, c bool) bool {
+	return xor(xor(a, b), c) && !(a && b && c)
+}
+
+func xor(a, b bool) bool {
+	return (!(a && b) && (!(!a && !b)))
 }

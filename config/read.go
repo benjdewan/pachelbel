@@ -109,6 +109,9 @@ func newConfig() *Config {
 	}
 }
 
+// I'm not certain there is a way to satisfy codebeat here that's actually
+// more legibile
+// codebeat:disable[BLOCK_NESTING]
 func (cfg *Config) readDir(root string) error {
 	walkErr := filepath.Walk(root, func(path string, info os.FileInfo, readErr error) error {
 		if readErr != nil {
@@ -123,6 +126,8 @@ func (cfg *Config) readDir(root string) error {
 	})
 	return walkErr
 }
+
+// codebeat:enable[BLOCK_NESTING]
 
 func (cfg *Config) readFile(path string) error {
 	file, err := os.Open(path)

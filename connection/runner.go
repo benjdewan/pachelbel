@@ -20,7 +20,10 @@
 
 package connection
 
-import "github.com/benjdewan/pachelbel/progress"
+import (
+	compose "github.com/benjdewan/gocomposeapi"
+	"github.com/benjdewan/pachelbel/progress"
+)
 
 type runFunc func(*Connection, Accessor) error
 
@@ -59,16 +62,20 @@ func (cxn *Connection) assignRunFunc(accessor Accessor) runFunc {
 		cxn.pb.AddBar(progress.ActionLookup, accessor.GetName())
 		return lookup
 	}
+	deployment, _ := cxn.client.GetDeploymentByName(accessor.GetName())
+	return cxn.assignOwnerRunFunc(accessor.GetName(), deployment)
 
-	deployment, errs := cxn.client.GetDeploymentByName(accessor.GetName())
-	if len(errs) == 0 {
-		cxn.pb.AddBar(progress.ActionUpdate, deployment.Name)
-		// Cache this deployment struct for later reference
-		cxn.deploymentsByName.Store(deployment.Name, deployment)
-		return update
+}
+
+func (cxn *Connection) assignOwnerRunFunc(name string, deployment *compose.Deployment) runFunc {
+	if deployment == nil {
+		cxn.pb.AddBar(progress.ActionCreate, name)
+		return create
 	}
-	cxn.pb.AddBar(progress.ActionCreate, accessor.GetName())
-	return create
+	cxn.pb.AddBar(progress.ActionUpdate, deployment.Name)
+	// Cache this deployment struct for later reference
+	cxn.deploymentsByName.Store(deployment.Name, deployment)
+	return update
 }
 
 func (cxn *Connection) assignDryRunFunc(accessor Accessor) runFunc {
@@ -76,14 +83,18 @@ func (cxn *Connection) assignDryRunFunc(accessor Accessor) runFunc {
 		cxn.pb.AddBar(progress.ActionDryRunLookup, accessor.GetName())
 		return dryRunLookup
 	}
+	deployment, _ := cxn.client.GetDeploymentByName(accessor.GetName())
+	return cxn.assignOwnerDryRunFunc(accessor.GetName(), deployment)
+}
 
-	deployment, errs := cxn.client.GetDeploymentByName(accessor.GetName())
-	if len(errs) == 0 {
-		cxn.pb.AddBar(progress.ActionDryRunUpdate, deployment.Name)
-		// Cache this deployment struct for later reference
-		cxn.deploymentsByName.Store(deployment.Name, deployment)
-		return dryRunUpdate
+func (cxn *Connection) assignOwnerDryRunFunc(name string, deployment *compose.Deployment) runFunc {
+	if deployment == nil {
+		cxn.pb.AddBar(progress.ActionDryRunCreate, name)
+		return dryRunCreate
 	}
-	cxn.pb.AddBar(progress.ActionDryRunCreate, accessor.GetName())
-	return dryRunCreate
+
+	cxn.pb.AddBar(progress.ActionDryRunUpdate, deployment.Name)
+	// Cache this deployment struct for later reference
+	cxn.deploymentsByName.Store(deployment.Name, deployment)
+	return dryRunUpdate
 }

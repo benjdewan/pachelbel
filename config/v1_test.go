@@ -37,6 +37,53 @@ func TestValidateV1(t *testing.T) {
 	}
 }
 
+func TestXOR(t *testing.T) {
+	for _, test := range xorTests {
+		actual := xor(test.a, test.b)
+		if actual != test.expected {
+			t.Errorf("xor(%t, %t) == %t. Expected %t", test.a,
+				test.b, actual, test.expected)
+		}
+	}
+}
+
+func TestXOR3(t *testing.T) {
+	for _, test := range xor3Tests {
+		actual := xor3(test.a, test.b, test.c)
+		if actual != test.expected {
+			t.Errorf("xor3(%t, %t, %t) == %t. Expected %t", test.a,
+				test.b, test.c, actual, test.expected)
+		}
+	}
+}
+
+var xorTests = []struct {
+	a        bool
+	b        bool
+	expected bool
+}{
+	{a: true, b: true, expected: false},
+	{a: true, b: false, expected: true},
+	{a: false, b: true, expected: true},
+	{a: false, b: false, expected: false},
+}
+
+var xor3Tests = []struct {
+	a        bool
+	b        bool
+	c        bool
+	expected bool
+}{
+	{a: true, b: false, c: false, expected: true},
+	{a: false, b: true, c: false, expected: true},
+	{a: false, b: false, c: true, expected: true},
+	{a: true, b: true, c: false, expected: false},
+	{a: true, b: true, c: true, expected: false},
+	{a: false, b: true, c: true, expected: false},
+	{a: true, b: false, c: true, expected: false},
+	{a: false, b: false, c: false, expected: false},
+}
+
 var (
 	validScaling   int = 2
 	invalidScaling int
