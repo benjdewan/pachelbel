@@ -21,6 +21,7 @@
 package connection
 
 import (
+	"bytes"
 	"fmt"
 	"net/url"
 	"os"
@@ -47,26 +48,22 @@ type connectionYAML struct {
 
 // codebeat:enable[TOO_MANY_IVARS]
 
-func (cxn *Connection) connectionYAMLByID(connections []map[string]outputYAML, endpointMap map[string]string, id string) ([]map[string]outputYAML, error) {
-	var cxnYAML map[string]outputYAML
-	var err error
+func (cxn *Connection) connectionYAMLByID(endpointMap map[string]string, id string) ([]byte, error) {
 	if cxn.dryRun && isFake(id) {
-		cxnYAML = fakeOutputYAML(id)
-	} else {
-		cxnYAML, err = cxn.getOutputYAML(endpointMap, id)
+		return fakeOutputYAML(id)
 	}
-	return append(connections, cxnYAML), err
+	return cxn.getOutputYAML(endpointMap, id)
 }
 
-func (cxn *Connection) getOutputYAML(endpointMap map[string]string, id string) (map[string]outputYAML, error) {
+func (cxn *Connection) getOutputYAML(endpointMap map[string]string, id string) ([]byte, error) {
 	deployment, errs := cxn.client.GetDeployment(id)
 	if len(errs) != 0 {
-		return make(map[string]outputYAML), fmt.Errorf("%v", errsOut(errs))
+		return []byte{}, fmt.Errorf("%v", errsOut(errs))
 	}
 	connections, err := extractConnectionsYAML(endpointMap,
 		deployment.Connection.Direct)
 	if err != nil {
-		return make(map[string]outputYAML), err
+		return []byte{}, err
 	}
 	cxnYAML := make(map[string]outputYAML)
 	cxnYAML[deployment.Name] = outputYAML{
@@ -74,7 +71,7 @@ func (cxn *Connection) getOutputYAML(endpointMap map[string]string, id string) (
 		CACert:      deployment.CACertificateBase64,
 		Connections: connections,
 	}
-	return cxnYAML, nil
+	return yaml.Marshal(cxnYAML)
 }
 
 func extractConnectionsYAML(endpointMap map[string]string, connectionStrings []string) ([]connectionYAML, error) {
@@ -118,11 +115,8 @@ func newConnectionYAML(endpointMap map[string]string, u *url.URL) connectionYAML
 	return cxnYAML
 }
 
-func writeConnectionYAML(cxnYAMLs []map[string]outputYAML, file string) error {
-	outBytes, err := yaml.Marshal(cxnYAMLs)
-	if err != nil {
-		return err
-	}
+func writeConnectionYAML(cxnYAML [][]byte, file string) error {
+	outBytes := bytes.Join(cxnYAML, []byte("\n"))
 	handle, err := os.Create(file)
 	if err != nil {
 		return err

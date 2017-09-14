@@ -152,11 +152,12 @@ func (cxn *Connection) Process(accessors []Accessor) error {
 // provisioned deployments as a YAML object to the provided file.
 func (cxn *Connection) ConnectionYAML(endpointMap map[string]string, outFile string) error {
 	q := queue.New(0)
-	connections := []map[string]outputYAML{}
+	connections := [][]byte{}
 	cxn.newDeploymentIDs.Range(func(key, value interface{}) bool {
 		var err error
-		connections, err = cxn.connectionYAMLByID(connections, endpointMap, key.(string))
+		connection, err := cxn.connectionYAMLByID(endpointMap, key.(string))
 		if err == nil {
+			connections = append(connections, connection)
 			return true
 		}
 		enqueue(q, err)
