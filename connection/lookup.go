@@ -20,7 +20,11 @@
 
 package connection
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/benjdewan/pachelbel/output"
+)
 
 func lookup(cxn *Connection, accessor Accessor) error {
 	deployment, errs := cxn.client.GetDeploymentByName(accessor.GetName())
@@ -35,7 +39,7 @@ func dryRunLookup(cxn *Connection, accessor Accessor) error {
 	deployment, errs := cxn.client.GetDeploymentByName(accessor.GetName())
 	if len(errs) != 0 {
 		// This is a dry run, assume it's been created
-		cxn.newDeploymentIDs.Store(fakeID(accessor.GetType(), accessor.GetName()), struct{}{})
+		cxn.newDeploymentIDs.Store(output.FakeID(accessor.GetType(), accessor.GetName()), struct{}{})
 		return nil
 	}
 	cxn.newDeploymentIDs.Store(deployment.ID, struct{}{})

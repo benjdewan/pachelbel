@@ -160,11 +160,13 @@ func createClient(apiKey string, w io.Writer) (*compose.Client, error) {
 	return client.SetLogger(true, w), nil
 }
 
-func enqueue(q *queue.Queue, item interface{}) {
-	if err := q.Put(item); err != nil {
-		// This only happens if we are using a Queue after Dispose()
-		// has been called on it.
-		panic(err)
+func enqueue(q *queue.Queue, items ...interface{}) {
+	for _, item := range items {
+		if err := q.Put(item); err != nil {
+			// This only happens if we are using a Queue after Dispose()
+			// has been called on it.
+			panic(err)
+		}
 	}
 }
 

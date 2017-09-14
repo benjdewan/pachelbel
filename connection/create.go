@@ -24,6 +24,7 @@ import (
 	"fmt"
 
 	compose "github.com/benjdewan/gocomposeapi"
+	"github.com/benjdewan/pachelbel/output"
 )
 
 func create(cxn *Connection, accessor Accessor) error {
@@ -109,7 +110,7 @@ func setDeploymentType(cxn *Connection, deployment Deployment, dParams compose.D
 }
 
 func dryRunCreate(cxn *Connection, accessor Accessor) error {
-	cxn.newDeploymentIDs.Store(fakeID(accessor.GetType(), accessor.GetName()),
+	cxn.newDeploymentIDs.Store(output.FakeID(accessor.GetType(), accessor.GetName()),
 		struct{}{})
 	return nil
 }

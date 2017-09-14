@@ -21,11 +21,13 @@
 package connection
 
 import (
+	"fmt"
 	"os"
 	"sync"
 	"time"
 
 	compose "github.com/benjdewan/gocomposeapi"
+	"github.com/benjdewan/pachelbel/output"
 	"github.com/benjdewan/pachelbel/progress"
 	"github.com/golang-collections/go-datastructures/queue"
 	"golang.org/x/sync/syncmap"
@@ -152,22 +154,30 @@ func (cxn *Connection) Process(accessors []Accessor) error {
 // provisioned deployments as a YAML object to the provided file.
 func (cxn *Connection) ConnectionYAML(endpointMap map[string]string, outFile string) error {
 	q := queue.New(0)
-	connections := [][]byte{}
+	builder := output.New(endpointMap)
 	cxn.newDeploymentIDs.Range(func(key, value interface{}) bool {
-		var err error
-		connection, err := cxn.connectionYAMLByID(endpointMap, key.(string))
-		if err == nil {
-			connections = append(connections, connection)
-			return true
+		if err := cxn.addToBuilder(key.(string), builder); err != nil {
+			enqueue(q, err)
+			return false
 		}
-		enqueue(q, err)
-		return false
+		return true
 	})
 
-	if err := writeConnectionYAML(connections, outFile); err != nil {
+	if err := builder.Write(outFile); err != nil {
 		enqueue(q, err)
 	}
 	return flushErrors(q)
+}
+
+func (cxn *Connection) addToBuilder(id string, b *output.Builder) error {
+	if output.IsFake(id) {
+		return b.AddFake(id)
+	}
+	deployment, errs := cxn.client.GetDeployment(id)
+	if len(errs) != 0 {
+		return fmt.Errorf("Unable to get deployment informtion for '%s':\n%v", id, errs)
+	}
+	return b.Add(deployment)
 }
 
 // Close closes any open connections and/or files possessed by the Connection
