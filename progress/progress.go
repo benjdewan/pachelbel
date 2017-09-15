@@ -272,7 +272,7 @@ func center(str string, width int) string {
 	}
 	div := (width - len(str)) / 2
 
-	return strings.Repeat(" ", div) + str + strings.Repeat(" ", div)
+	return strings.Repeat(" ", div) + str + strings.Repeat(" ", (width-div-len(str)))
 }
 
 func fprintln(w io.Writer, a ...interface{}) {
