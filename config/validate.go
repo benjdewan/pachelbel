@@ -30,7 +30,7 @@ var validRoles = map[string]struct{}{
 
 var validTypes = map[string]struct{}{
 	"mongodb":        {},
-	"rethinkdb":      {},
+	"rethink":        {},
 	"elastic_search": {},
 	"redis":          {},
 	"postgresql":     {},
@@ -38,6 +38,7 @@ var validTypes = map[string]struct{}{
 	"etcd":           {},
 	"mysql":          {},
 	"janusgraph":     {},
+	"scylla":         {},
 	"disque":         {},
 }
 

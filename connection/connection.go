@@ -141,8 +141,9 @@ func (cxn *Connection) Process(accessors []Accessor) error {
 			if err := r.run(cxn, r.accessor); err != nil {
 				cxn.pb.Error(r.accessor.GetName())
 				enqueue(q, err)
+			} else {
+				cxn.pb.Done(r.accessor.GetName())
 			}
-			cxn.pb.Done(r.accessor.GetName())
 			wg.Done()
 		}(runner)
 	}
