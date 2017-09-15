@@ -176,7 +176,7 @@ func (cxn *Connection) addToBuilder(id string, b *output.Builder) error {
 	}
 	deployment, errs := cxn.client.GetDeployment(id)
 	if len(errs) != 0 {
-		return fmt.Errorf("Unable to get deployment informtion for '%s':\n%v", id, errs)
+		return fmt.Errorf("Unable to get deployment information for '%s':\n%v", id, errs)
 	}
 	return b.Add(deployment)
 }
