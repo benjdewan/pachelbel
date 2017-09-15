@@ -28,13 +28,14 @@ import (
 func validateV1(d deploymentV1, input string) error {
 	errs := []string{}
 
-	errs = validateConfigVersionV1(d.ConfigVersion, errs)
-	errs = validateType(d.Type, errs)
-	errs = validateDeploymentTargetV1(d.Cluster, d.Datacenter, d.Tags, errs)
-	errs = validateName(d.Name, errs)
-	errs = validateScaling(d.Scaling, errs)
-	errs = validateWiredTiger(d.WiredTiger, d.Type, errs)
-	errs = validateTeams(d.Teams, errs)
+	errs = append(errs, validateConfigVersionV1(d.ConfigVersion)...)
+	errs = append(errs, validateType(d.Type)...)
+	errs = append(errs, validateDeploymentTargetV1(d.Cluster, d.Datacenter, d.Tags)...)
+	errs = append(errs, validateName(d.Name)...)
+	errs = append(errs, validateScaling(d.Scaling)...)
+	errs = append(errs, validateWiredTiger(d.WiredTiger, d.Type)...)
+	errs = append(errs, validateCacheMode(d.CacheMode, d.Type)...)
+	errs = append(errs, validateTeams(d.Teams)...)
 
 	if len(errs) == 0 {
 		return nil
@@ -44,21 +45,18 @@ func validateV1(d deploymentV1, input string) error {
 		input, strings.Join(errs, "\n"))
 }
 
-func validateConfigVersionV1(version int, errs []string) []string {
+func validateConfigVersionV1(version int) []string {
 	if version != 1 {
-		errs = append(errs,
-			"Unsupported or missing 'config_version' field\n")
+		return []string{"Unsupported or missing 'config_version' field"}
 	}
-	return errs
+	return []string{}
 }
 
-func validateDeploymentTargetV1(cluster, datacenter string, tags, errs []string) []string {
+func validateDeploymentTargetV1(cluster, datacenter string, tags []string) []string {
 	if xor3(len(cluster) > 0, len(datacenter) > 0, len(tags) > 0) {
-		return errs
+		return []string{}
 	}
-	errs = append(errs,
-		"Exactly one of the 'cluster', 'datacenter', or 'tags' fields must be provided for every deployment\n")
-	return errs
+	return []string{"Exactly one of the 'cluster', 'datacenter', or 'tags' fields must be provided for every deployment\n"}
 }
 
 func xor3(a, b, c bool) bool {

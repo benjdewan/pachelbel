@@ -36,6 +36,7 @@ type deploymentV1 struct {
 	Teams         [](*TeamV1) `json:"teams"`
 	Scaling       *int        `json:"scaling"`
 	WiredTiger    bool        `json:"wired_tiger"`
+	CacheMode     bool        `json:"cache_mode"`
 	Timeout       *int        `json:"timeout,omitempty"`
 }
 
@@ -124,6 +125,12 @@ func (d deploymentV1) GetTimeout() float64 {
 // the wired_tiger engine has been enabled.
 func (d deploymentV1) GetWiredTiger() bool {
 	return d.Type == "mongodb" && d.WiredTiger
+}
+
+// GetCacheMode is true if the deployment type is 'redis' and the
+// cache_mode flag has been set
+func (d deploymentV1) GetCacheMode() bool {
+	return d.Type == "redis" && d.CacheMode
 }
 
 // GetSSL returns true if SSL should be enabled for a deployment.

@@ -62,6 +62,7 @@ type Deployment interface {
 	GetType() string
 	GetVersion() string
 	GetWiredTiger() bool
+	GetCacheMode() bool
 }
 
 // Connection is the struct that manages the state of provisioning

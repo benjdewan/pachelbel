@@ -207,6 +207,24 @@ wired_tiger: true`,
 	{
 		config: `---
 config_version: 1
+type: "redis"
+name: "names-are-not-validated"
+datacenter: "datacenters-are-not-validated"
+cache_mode: true`,
+		valid: true,
+	},
+	{
+		config: `---
+config_version: 1
+type: "mongodb"
+name: "names-are-not-validated"
+datacenter: "datacenters-are-not-validated"
+cache_mode: true`,
+		valid: false,
+	},
+	{
+		config: `---
+config_version: 1
 type: "mongodb"
 name: "names-are-not-validated"
 datacenter: "datacenters-are-not-validated"

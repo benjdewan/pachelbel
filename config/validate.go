@@ -41,9 +41,10 @@ var validTypes = map[string]struct{}{
 	"disque":         {},
 }
 
-func validateType(deploymentType string, errs []string) []string {
+func validateType(deploymentType string) []string {
+	errs := []string{}
 	if len(deploymentType) == 0 {
-		errs = append(errs, "The 'type' field is required\n")
+		errs = append(errs, "The 'type' field is required")
 	} else if _, ok := validTypes[deploymentType]; !ok {
 		errs = append(errs,
 			fmt.Sprintf("'%s' is not a valid deployment type.", deploymentType))
@@ -51,41 +52,48 @@ func validateType(deploymentType string, errs []string) []string {
 	return errs
 }
 
-func validateName(name string, errs []string) []string {
+func validateName(name string) []string {
 	if len(name) == 0 {
-		errs = append(errs, "The 'name' field is required\n")
+		return []string{"The 'name' field is required"}
 	}
-	return errs
+	return []string{}
 }
 
-func validateScaling(scaling *int, errs []string) []string {
+func validateScaling(scaling *int) []string {
 	if scaling != nil && *scaling < 1 {
-		errs = append(errs, "The 'scaling' field must be an integer >= 1\n")
+		return []string{"The 'scaling' field must be an integer >= 1"}
 	}
-	return errs
+	return []string{}
 }
 
-func validateTeams(teams []*TeamV1, errs []string) []string {
+func validateTeams(teams []*TeamV1) []string {
+	errs := []string{}
 	if teams == nil {
 		return errs
 	}
 	for _, team := range teams {
 		if len(team.ID) == 0 {
-			errs = append(errs, "Every team entry requires an ID\n")
+			errs = append(errs, "Every team entry requires an ID")
 		}
 		if _, ok := validRoles[team.Role]; ok {
 			continue
 		}
 		errs = append(errs,
-			fmt.Sprintf("'%s' is not a valid team role\n", team.Role))
+			fmt.Sprintf("'%s' is not a valid team role", team.Role))
 	}
 	return errs
 }
 
-func validateWiredTiger(wiredTiger bool, deploymentType string, errs []string) []string {
+func validateWiredTiger(wiredTiger bool, deploymentType string) []string {
 	if wiredTiger && deploymentType != "mongodb" {
-		errs = append(errs,
-			"The 'wired_tiger' field is only valid for the 'mongodb' deployment type\n")
+		return []string{"The 'wired_tiger' field is only valid for the 'mongodb' deployment type"}
 	}
-	return errs
+	return []string{}
+}
+
+func validateCacheMode(cacheMode bool, deploymentType string) []string {
+	if cacheMode && deploymentType != "redis" {
+		return []string{"The 'cache_mode' field is only valid for the 'redis' deployment type"}
+	}
+	return []string{}
 }

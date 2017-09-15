@@ -72,6 +72,10 @@ func deploymentParams(deployment Deployment, cxn *Connection) (compose.Deploymen
 		dParams.WiredTiger = true
 	}
 
+	if deployment.GetCacheMode() {
+		dParams.CacheMode = true
+	}
+
 	if deployment.GetScaling() > 1 {
 		dParams.Units = deployment.GetScaling()
 	}

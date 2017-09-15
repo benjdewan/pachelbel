@@ -28,8 +28,8 @@ import (
 func validateDeploymentClientV2(d deploymentClientV2, input string) error {
 	errs := []string{}
 
-	errs = validateType(d.Type, errs)
-	errs = validateName(d.Name, errs)
+	errs = append(errs, validateType(d.Type)...)
+	errs = append(errs, validateName(d.Name)...)
 	if len(errs) == 0 {
 		return nil
 	}
