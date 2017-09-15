@@ -119,8 +119,8 @@ func (b *Builder) convertConnections(cStrings []string) ([]connectionYAML, error
 }
 
 func (b *Builder) convertConnection(cString string) ([]connectionYAML, error) {
-	if strings.Contains(cString, ",") {
-		return b.convertMultiConnection(cString)
+	if strings.HasPrefix(cString, "mongodb") && strings.Contains(cString, ",") {
+		return b.convertMongoConnection(cString)
 	}
 	url, err := urlparser.Parse(cString)
 	if err != nil {
@@ -146,16 +146,24 @@ func (b *Builder) convertConnection(cString string) ([]connectionYAML, error) {
 	return []connectionYAML{connection}, nil
 }
 
-func (b *Builder) convertMultiConnection(multiString string) ([]connectionYAML, error) {
-	cStrings := strings.Split(multiString, ",")
-	prefix := strings.Split(cStrings[0], "@")[0]
-	for i, cString := range cStrings {
-		if i == 0 {
-			continue
-		}
-		cStrings[i] = strings.Join([]string{prefix, cString}, "@")
+func (b *Builder) convertMongoConnection(mongoString string) ([]connectionYAML, error) {
+	prefix, hosts, suffix := mongoSplit(mongoString)
+	cStrings := []string{}
+	for _, host := range strings.Split(hosts, ",") {
+		cStrings = append(cStrings, mongoJoin(prefix, host, suffix))
 	}
 	return b.convertConnections(cStrings)
+}
+
+func mongoSplit(mongoStr string) (string, string, string) {
+	splitPrefix := strings.Split(mongoStr, "@")
+	prefix := splitPrefix[0]
+	splitSuffix := strings.Split(splitPrefix[1], "/")
+	return prefix, splitSuffix[0], splitSuffix[1]
+}
+
+func mongoJoin(prefix, host, suffix string) string {
+	return strings.Join([]string{strings.Join([]string{prefix, host}, "@"), suffix}, "/")
 }
 
 func (b *Builder) resolveHost(host string) (string, error) {
