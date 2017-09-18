@@ -117,7 +117,6 @@ func (cfg *Config) readDir(root string) error {
 		if readErr != nil {
 			return readErr
 		} else if path == root || info.IsDir() {
-			fmt.Printf("Skipping %v.\n", path)
 			return nil
 		} else if err := cfg.readFile(path); err != nil {
 			return err
