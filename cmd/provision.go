@@ -79,7 +79,6 @@ func process(cxn *connection.Connection, accessors []connection.Accessor) {
 
 func writeOutput(cxn *connection.Connection, endpointMap map[string]string) {
 	dst := viper.GetString("output")
-	log.Printf("Writing connection strings to '%v'\n", dst)
 	if err := cxn.ConnectionYAML(endpointMap, dst); err != nil {
 		log.Fatal(err)
 	}
