@@ -29,7 +29,7 @@ Pachelbel will write deployment connection information to disk if it successfull
     port:     {{.port}}
     scheme: http|https|mongodb|mysql|amqp|amqp|postgres
     username: {{.username}}
-  type: elasticsearch|etcd|janusgraph|mongodb|mysql|postgresql|rabbitmq|redis|scylladb
+  type: elasticsearch|etcd|disque|janusgraph|mongodb|mysql|postgresql|rabbitmq|redis|rethink|scylla
 ```
 
 For example:
