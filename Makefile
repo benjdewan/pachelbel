@@ -9,7 +9,7 @@ TARGETS := pachelbel-linux pachelbel-windows.exe pachelbel-darwin
 SOURCE := $(shell find . -type f -iname '*.go')
 
 # Executables
-GOVENDOR := $(GOPATH)/bin/govendor
+DEP := $(GOPATH)/bin/dep
 GOMETALINTER := $(GOPATH)/bin/gometalinter
 
 # Sanity Check
@@ -24,23 +24,23 @@ all: $(TARGETS)
 .PHONY: all
 
 setup:
-	go get -u github.com/alecthomas/gometalinter github.com/kardianos/govendor
+	go get -u github.com/alecthomas/gometalinter github.com/golang/dep/cmd/dep
 	$(GOMETALINTER) --install
-	$(GOVENDOR) sync
+	$(DEP) ensure
 .PHONY: setup
 
 pachelbel-%.exe: $(SOURCE)
-	GOOS=$* $(GOVENDOR) build -ldflags $(LDFLAGS) -o "$@"
+	GOOS=$* go build -ldflags $(LDFLAGS) -o "$@"
 
 pachelbel-%: $(SOURCE)
-	GOOS=$* $(GOVENDOR) build -ldflags $(LDFLAGS) -o "$@"
+	GOOS=$* go build -ldflags $(LDFLAGS) -o "$@"
 
 lint:
-	$(GOMETALINTER) --deadline=90s cmd/ connection/ main.go
+	$(GOMETALINTER) --deadline=90s cmd/ connection/ config/ progress/ output/ main.go
 .PHONY: lint
 
 test:
-	$(GOVENDOR) test -v +local
+	go test -v ./progress ./config ./output
 .PHONY: test
 
 clean:
