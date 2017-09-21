@@ -22,7 +22,17 @@ package connection
 
 import (
 	compose "github.com/benjdewan/gocomposeapi"
-	"github.com/benjdewan/pachelbel/progress"
+)
+
+const (
+	actionUpdate            = "Updating"
+	actionCreate            = "Creating"
+	actionLookup            = "Looking up"
+	actionDeprovision       = "Deprovisioning"
+	actionDryRunUpdate      = "Pretending to update"
+	actionDryRunCreate      = "Pretending to create"
+	actionDryRunLookup      = "Pretending to lookup"
+	actionDryRunDeprovision = "Pretending to deprovision"
 )
 
 type runFunc func(*Connection, Accessor) error
@@ -59,8 +69,11 @@ func (cxn *Connection) newDryRunners(accessors []Accessor) []cxnRunner {
 
 func (cxn *Connection) assignRunFunc(accessor Accessor) runFunc {
 	if !accessor.IsOwner() {
-		cxn.pb.AddBar(progress.ActionLookup, accessor.GetName())
+		cxn.pb.AddBar(actionLookup, accessor.GetName())
 		return lookup
+	} else if accessor.IsDeleter() {
+		cxn.pb.AddBar(actionDeprovision, accessor.GetName())
+		return deprovision
 	}
 	deployment, _ := cxn.client.GetDeploymentByName(accessor.GetName())
 	return cxn.assignOwnerRunFunc(accessor.GetName(), deployment)
@@ -69,10 +82,10 @@ func (cxn *Connection) assignRunFunc(accessor Accessor) runFunc {
 
 func (cxn *Connection) assignOwnerRunFunc(name string, deployment *compose.Deployment) runFunc {
 	if deployment == nil {
-		cxn.pb.AddBar(progress.ActionCreate, name)
+		cxn.pb.AddBar(actionCreate, name)
 		return create
 	}
-	cxn.pb.AddBar(progress.ActionUpdate, deployment.Name)
+	cxn.pb.AddBar(actionUpdate, deployment.Name)
 	// Cache this deployment struct for later reference
 	cxn.deploymentsByName.Store(deployment.Name, deployment)
 	return update
@@ -80,8 +93,11 @@ func (cxn *Connection) assignOwnerRunFunc(name string, deployment *compose.Deplo
 
 func (cxn *Connection) assignDryRunFunc(accessor Accessor) runFunc {
 	if !accessor.IsOwner() {
-		cxn.pb.AddBar(progress.ActionDryRunLookup, accessor.GetName())
+		cxn.pb.AddBar(actionDryRunLookup, accessor.GetName())
 		return dryRunLookup
+	} else if accessor.IsDeleter() {
+		cxn.pb.AddBar(actionDryRunDeprovision, accessor.GetName())
+		return dryRunDeprovision
 	}
 	deployment, _ := cxn.client.GetDeploymentByName(accessor.GetName())
 	return cxn.assignOwnerDryRunFunc(accessor.GetName(), deployment)
@@ -89,11 +105,11 @@ func (cxn *Connection) assignDryRunFunc(accessor Accessor) runFunc {
 
 func (cxn *Connection) assignOwnerDryRunFunc(name string, deployment *compose.Deployment) runFunc {
 	if deployment == nil {
-		cxn.pb.AddBar(progress.ActionDryRunCreate, name)
+		cxn.pb.AddBar(actionDryRunCreate, name)
 		return dryRunCreate
 	}
 
-	cxn.pb.AddBar(progress.ActionDryRunUpdate, deployment.Name)
+	cxn.pb.AddBar(actionDryRunUpdate, deployment.Name)
 	// Cache this deployment struct for later reference
 	cxn.deploymentsByName.Store(deployment.Name, deployment)
 	return dryRunUpdate

@@ -56,16 +56,6 @@ type ProgressBars struct {
 // codebeat:enable[TOO_MANY_IVARS]
 
 const (
-	// ActionUpdate and the rest of these constants are used to print what
-	// pachelbel is doing for all the deployments being created, edited or
-	// looked up
-	ActionUpdate       = "Updating"
-	ActionCreate       = "Creating"
-	ActionLookup       = "Looking up"
-	ActionDryRunUpdate = "Pretending to update"
-	ActionDryRunCreate = "Pretending to create"
-	ActionDryRunLookup = "Pretending to lookup"
-
 	stateRunning  = "running"
 	stateDone     = "done"
 	stateFailed   = "failed"

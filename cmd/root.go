@@ -55,11 +55,16 @@ func init() {
 		`A Compose API Key to use for authentication with the API.
 			 If this flag is not set pachelbel will attempt to
 			 read the COMPOSE_API_KEY environment variable.`)
-	RootCmd.PersistentFlags().BoolP("verbose", "v", false,
-		`Set this flag to enable verbose mode. Very useful for debugging
-			 connection issues with Compose.`)
+	RootCmd.PersistentFlags().StringP("log-file", "l", "",
+		`If specified pachelbel will enable logging for
+				all Compose API requests and write them, as well
+				as the reponses, to the specified log file`)
+	RootCmd.PersistentFlags().BoolP("dry-run", "n", false,
+		`Simulate a pachelbel command run without making any
+				 real changes.`)
 
-	viper.BindPFlag("verbose", RootCmd.PersistentFlags().Lookup("verbose"))
+	viper.BindPFlag("dry-run", RootCmd.PersistentFlags().Lookup("dry-run"))
+	viper.BindPFlag("log-file", RootCmd.PersistentFlags().Lookup("log-file"))
 	viper.BindPFlag("api-key", RootCmd.PersistentFlags().Lookup("api-key"))
 }
 

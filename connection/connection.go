@@ -38,8 +38,17 @@ import (
 // interface.
 type Accessor interface {
 	IsOwner() bool
+	IsDeleter() bool
 	GetName() string
 	GetType() string
+}
+
+// Deprovision is the interface for deployment deprovision objects. To not wait
+// for the deprovision recipe to complete for the given ID, ensure GetTimeout()
+// returns 0
+type Deprovision interface {
+	GetID() string
+	GetTimeout() float64
 }
 
 // Deployment is the interface for mutatable Compose deployments. For any
@@ -147,6 +156,15 @@ func (cxn *Connection) Process(accessors []Accessor) error {
 	wg.Wait()
 	cxn.pb.Stop()
 	return flushErrors(q)
+}
+
+// Deprovision takes a slice of deployment names and IDs to deprovision,
+// resolves the ID (if necessay), and fires off DELETE API requests. If
+// the 'wait' parameter is true Deprovision waits on the deprovision
+// recipes to complete. Otherwise Deprovision returns fast
+func (cxn *Connection) Deprovision(deployments []string, timeout float64) error {
+	return cxn.Process(resolveDeprovisionObjects(cxn.client,
+		deployments, timeout))
 }
 
 // ConnectionYAML writes out the connection strings for all the

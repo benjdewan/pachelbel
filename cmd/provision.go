@@ -101,8 +101,6 @@ func init() {
 	addClusterFlag()
 	addDatacenterFlag()
 	addOutputFlag()
-	addDryRunFlag()
-	addLogFileFlag()
 }
 
 func addClusterFlag() {
@@ -134,28 +132,4 @@ func addOutputFlag() {
 		`The file to write connection string
 				 information to.`)
 	viper.BindPFlag("output", provisionCmd.Flags().Lookup("output"))
-}
-
-func addDryRunFlag() {
-	provisionCmd.Flags().BoolP("dry-run", "n", false,
-		`Simulate a provision run without making any
-				 real changes.
-
-				 If a deployment already exists the connection
-				 strings to it will be returned, but any
-				 additional steps to rescale, upgrade or add
-				 team roles to the deployment will be ignored.
-
-				 If a deployment does not exist it will not be
-				 created and a fake connection string will be
-				 returned for testing purposes.`)
-	viper.BindPFlag("dry-run", provisionCmd.Flags().Lookup("dry-run"))
-}
-
-func addLogFileFlag() {
-	provisionCmd.Flags().StringP("log-file", "l", "",
-		`If specified pachelbel will enable logging for
-				all Compose API requests and write them, as well
-				as the reponses, to the specified log file`)
-	viper.BindPFlag("log-file", provisionCmd.Flags().Lookup("log-file"))
 }

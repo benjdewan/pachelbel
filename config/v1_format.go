@@ -55,6 +55,12 @@ func (d deploymentV1) IsOwner() bool {
 	return true
 }
 
+// IsDeleter will always return false because a deployment object is for
+// creating/editing a deployment, not removing it
+func (d deploymentV1) IsDeleter() bool {
+	return false
+}
+
 // GetName returns the name of the deployment
 func (d deploymentV1) GetName() string {
 	return d.Name
