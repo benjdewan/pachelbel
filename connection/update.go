@@ -140,7 +140,7 @@ func dryRunUpdate(cxn *Connection, accessor Accessor) error {
 	deployment, ok := cxn.getDeploymentByName(accessor.GetName())
 	if !ok {
 		// This should never happen
-		panic("syncmap integrity failure")
+		panic("map integrity failure")
 	}
 	cxn.newDeploymentIDs.Store(deployment.ID, struct{}{})
 	return nil

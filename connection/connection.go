@@ -30,7 +30,6 @@ import (
 	"github.com/benjdewan/pachelbel/output"
 	"github.com/benjdewan/pachelbel/progress"
 	"github.com/golang-collections/go-datastructures/queue"
-	"golang.org/x/sync/syncmap"
 )
 
 // Accessor is the interface for any Compose Deployment information request.
@@ -76,8 +75,8 @@ type Connection struct {
 	accountID         string
 	clusterIDsByName  map[string]string
 	datacenters       map[string]struct{}
-	deploymentsByName *syncmap.Map
-	newDeploymentIDs  *syncmap.Map
+	deploymentsByName *sync.Map
+	newDeploymentIDs  *sync.Map
 	pollingInterval   time.Duration
 	pb                *progress.ProgressBars
 }
@@ -88,8 +87,8 @@ type Connection struct {
 // connection. Invoke Init() to do so.
 func New(logFile string, pollingInterval int, dryRun bool) (*Connection, error) {
 	cxn := &Connection{
-		newDeploymentIDs:  &syncmap.Map{},
-		deploymentsByName: &syncmap.Map{},
+		newDeploymentIDs:  &sync.Map{},
+		deploymentsByName: &sync.Map{},
 		pollingInterval:   time.Duration(pollingInterval) * time.Second,
 		pb:                progress.New(),
 		dryRun:            dryRun,
