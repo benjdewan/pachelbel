@@ -51,7 +51,6 @@ func runProvision(cmd *cobra.Command, args []string) {
 	}
 
 	cxn, err := connection.New(viper.GetString("log-file"),
-		viper.GetInt("polling-interval"),
 		viper.GetBool("dry-run"))
 	if err != nil {
 		log.Fatal(err)
@@ -102,7 +101,6 @@ func init() {
 	addClusterFlag()
 	addDatacenterFlag()
 	addOutputFlag()
-	addPollingIntervalFlag()
 	addDryRunFlag()
 	addLogFileFlag()
 }
@@ -136,13 +134,6 @@ func addOutputFlag() {
 		`The file to write connection string
 				 information to.`)
 	viper.BindPFlag("output", provisionCmd.Flags().Lookup("output"))
-}
-
-func addPollingIntervalFlag() {
-	provisionCmd.Flags().IntP("polling-interval", "p", 5,
-		`The polling interval, in seconds, to use when
-				 waiting for a provisioning recipe to complete`)
-	viper.BindPFlag("polling-interval", provisionCmd.Flags().Lookup("polling-interval"))
 }
 
 func addDryRunFlag() {

@@ -77,7 +77,6 @@ type Connection struct {
 	datacenters       map[string]struct{}
 	deploymentsByName *sync.Map
 	newDeploymentIDs  *sync.Map
-	pollingInterval   time.Duration
 	pb                *progress.ProgressBars
 }
 
@@ -85,15 +84,14 @@ type Connection struct {
 
 // New creates a new Connection struct, but does not initialize the Compose
 // connection. Invoke Init() to do so.
-func New(logFile string, pollingInterval int, dryRun bool) (*Connection, error) {
+func New(logFile string, dryRun bool) (*Connection, error) {
 	cxn := &Connection{
 		newDeploymentIDs:  &sync.Map{},
 		deploymentsByName: &sync.Map{},
-		pollingInterval:   time.Duration(pollingInterval) * time.Second,
 		pb:                progress.New(),
 		dryRun:            dryRun,
 	}
-	cxn.pb.RefreshRate = cxn.pollingInterval
+	cxn.pb.RefreshRate = 3 * time.Second
 	var err error
 	if len(logFile) > 0 {
 		cxn.logFile, err = os.Create(logFile)
