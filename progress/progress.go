@@ -131,8 +131,12 @@ func (p *ProgressBars) Error(barName string) {
 	p.changeState(barName, stateFailed)
 }
 
-// Stop ends the printing of all progress bars.
+// Stop ends the printing of all progress bars. Because Stop()
+// is often called immediately after a call to Done() or Error()
+// we do a final status update before actually doing a stop to flush
+// those messages
 func (p *ProgressBars) Stop() {
+	p.draw()
 	p.stopChan <- struct{}{}
 	p.started = false
 }
