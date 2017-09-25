@@ -21,6 +21,8 @@
 package connection
 
 import (
+	"sync"
+
 	compose "github.com/benjdewan/gocomposeapi"
 )
 
@@ -46,24 +48,37 @@ func (cxn *Connection) newRunners(accessors []Accessor) []cxnRunner {
 	if cxn.dryRun {
 		return cxn.newDryRunners(accessors)
 	}
-	runners := []cxnRunner{}
-	for _, accessor := range accessors {
-		runners = append(runners, cxnRunner{
-			accessor: accessor,
-			run:      cxn.assignRunFunc(accessor),
-		})
+	var wg sync.WaitGroup
+	wg.Add(len(accessors))
+	runners := make([]cxnRunner, len(accessors))
+
+	for index, accessor := range accessors {
+		go func(i int, a Accessor) {
+			runners[i] = cxnRunner{
+				accessor: a,
+				run:      cxn.assignRunFunc(a),
+			}
+			wg.Done()
+		}(index, accessor)
 	}
+	wg.Wait()
 	return runners
 }
 
 func (cxn *Connection) newDryRunners(accessors []Accessor) []cxnRunner {
-	runners := []cxnRunner{}
-	for _, accessor := range accessors {
-		runners = append(runners, cxnRunner{
-			accessor: accessor,
-			run:      cxn.assignDryRunFunc(accessor),
-		})
+	var wg sync.WaitGroup
+	wg.Add(len(accessors))
+	runners := make([]cxnRunner, len(accessors))
+	for index, accessor := range accessors {
+		go func(i int, a Accessor) {
+			runners[i] = cxnRunner{
+				accessor: a,
+				run:      cxn.assignDryRunFunc(a),
+			}
+			wg.Done()
+		}(index, accessor)
 	}
+	wg.Wait()
 	return runners
 }
 
