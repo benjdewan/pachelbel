@@ -1,0 +1,4 @@
+config_version: 2
+object_type: deployment_client
+name: pachelbel-postgres-08
+type: postgresql

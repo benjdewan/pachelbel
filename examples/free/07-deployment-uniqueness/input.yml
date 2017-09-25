@@ -1,0 +1,10 @@
+config_version: 1
+name: pachelbel-postgres-07
+type: postgresql
+datacenter: aqs:us-east-1
+---
+config_version: 1
+name: pachelbel-postgres-07
+type: postgresql
+datacenter: aqs:us-east-1
+

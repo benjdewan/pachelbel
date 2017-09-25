@@ -1,0 +1,5 @@
+config_version: 1
+name: pachelbel-postgres-06
+type: postgresql
+datacenter: aws:us-east-1
+

@@ -1,0 +1,12 @@
+config_version: 1
+name: pachelbel-postgres-01
+type: postgresql
+cluster: acme-corp-us-south-01
+---
+config_version: 2
+object_type: endpoint_map
+endpoint_map:
+  softlayer-dallas09.compose.direct: internal-00.acme-corp.vpn
+  softlayer-dallas09-1.compose.direct: internal-01.acme-corp.vpn
+  softlayer-dallas09-2.compose.direct: internal-02.acme-corp.vpn
+  softlayer-dallas09-3.compose.direct: internal-03.acme-corp.vpn

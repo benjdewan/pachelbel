@@ -1,0 +1,32 @@
+config_version: 1
+name: pachelbel-postgres-ssl
+type: postgresql
+datacenter: aws:us-east-1
+ssl: true
+---
+config_version: 1
+name: pachelbel-postgres-09
+type: postgresql
+datacenter: aws:eu-west-1
+---
+config_version: 1
+name: pachelbel-redis
+type: redis
+datacenter: aws:us-east-1
+cache_mode: true
+---
+config_version: 1
+name: pachelbel-rabbitmq
+type: rabbitmq
+scaling: 3
+datacenter: softlayer-dallas-09
+---
+config_version: 2
+object_type: deployment_client
+name: pachelbel-janusgraph
+type: janusgraph
+---
+config_version: 2
+object_type: deployment_client
+name: pachelbel-elastic_search
+type: elastic_search
