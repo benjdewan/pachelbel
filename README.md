@@ -37,6 +37,9 @@ The valuable aspect of this provision step is that it's idempotent. Re-running
 
 Each object is versioned, and the v2 schema does not yet support the functionality of the v1 schema, so the mixing of objects from different schemas is both supported and expected.
 
+Checkout the [the examples](examples/README.md) to see runnable input files as well as the commands to use them.
+
+
 #### The `provision` output schema
 
 Pachelbel's output schema is also a yaml file to be consumed by other tools in a configuration/deployment workflow. The schema is not currently strictly versioned.

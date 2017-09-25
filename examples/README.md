@@ -23,7 +23,7 @@ if this happens.
 
 ### 1. Provision a postgres database
 
-*   [input.yml](/free/01-postgres/input.yml)
+*   [input.yml](free/01-postgres/input.yml)
 
 Running
 ```console
@@ -39,7 +39,7 @@ $ pachelbel deprovision pachelbel-postgres-01
 
 ### 2. Provision a postgress database with SSL enabled
 
-*   [input.yml](/free/02-postgres-ssl/input.yml)
+*   [input.yml](free/02-postgres-ssl/input.yml)
 
 Running
 ```console
@@ -58,7 +58,7 @@ $ pachelbel deprovision pachelbel-postgres-02
 
 ### 3. Provisioning a larger databse
 
-*   [input.yml](/free/03-postgres-bigger/input.yml)
+*   [input.yml](free/03-postgres-bigger/input.yml)
 
 The (Compose API)[https://apidocs.compose.com/v1.0/reference#2016-07-post-deployments]
 offers a single knob for changing the size of a deployment which is
@@ -80,7 +80,7 @@ $ pachelbel deprovision pachelbel-postgres-03
 
 ### 4. Provisioning multiple deployments at once
 
-*   [input.yml](/free/04-multiple-deployments/input.yml)
+*   [input.yml](free/04-multiple-deployments/input.yml)
 
 A single input configuration file can define multiple deployment objects that
 pachelbel will provision in parallel.
@@ -108,7 +108,7 @@ $ pachelbel deprovision pachelbel-postgres-04 pachelbel-postgres-ssl pachelbel-r
 
 ### 5. Connecting to an exisiting deployment
 
-*   [input.yml](/free/05-exisiting-deployment/input.yml)
+*   [input.yml](free/05-exisiting-deployment/input.yml)
 
 The pachelbel input format is declarative, and the provision command is idempotent.
 This means if you define a deployment that does not exist pachelbel will create
@@ -140,8 +140,8 @@ $ pachelbel deprovision pachelbel-postgres-05
 
 ### 6. Resizing a deployment
 
-*   [input.yml](/free/06-resizing-deployments/input.yml)
-*   [upgrade.yml](/free/06-resizing-deployments/upgrade.yml)
+*   [input.yml](free/06-resizing-deployments/input.yml)
+*   [upgrade.yml](free/06-resizing-deployments/upgrade.yml)
 
 If a deployment already exists, and your input to pachelbel's provision call
 includes scaling or version fields pachelbel will attempt to ensure the size
@@ -173,8 +173,8 @@ $ pachelbel deprovision pachelbel-postgres-06
 
 ### 7. Deployment uniqueness
 
-*   [input.yml](/free/07-deployment-uniqueness/input.yml)
-*   [input-advanced.yml](/free/07-deployment-uniqueness/input-advanced.yml)
+*   [input.yml](free/07-deployment-uniqueness/input.yml)
+*   [input-advanced.yml](free/07-deployment-uniqueness/input-advanced.yml)
 
 When specifying multiple deployment objects the names must be unique. Deployment
 names in Compose must be unique, and Pachelbel lacks the ability to merge
@@ -193,8 +193,8 @@ $ pachelbel provision ./free/07-deployment-uniqueness/input-advanced.yml
 
 ### 8. Deployment Clients
 
-*   [owner.yml](/free/08-deployment-clients/owner.yml)
-*   [client.yml](/free/08-deployment-clients/client.yml)
+*   [owner.yml](free/08-deployment-clients/owner.yml)
+*   [client.yml](free/08-deployment-clients/client.yml)
 
 Some Compose deployments will be shared across development teams where one team
 owns/administrates it while another subscribes to it (for example, using a
@@ -235,7 +235,7 @@ $ pachelbel provision ./free/08-deployment-clients/owner.yml ./free/08-deploymen
 
 ### 9. Dry run
 
-*   [input.yml](/free/09-dry-run/input.yml)
+*   [input.yml](free/09-dry-run/input.yml)
 
 Pachelbel has a `--dry-run` flag for both provisioning and deprovisioning that can
 be used for testing without making any changes to your Compose account. It is
@@ -273,7 +273,7 @@ developing against your own enterprise account (if you have access to one).
 
 ### 1. Deploying to clusters
 
-*   [input.yml](/enterprise/01-clusters/input.yml)
+*   [input.yml](enterprise/01-clusters/input.yml)
 
 In enterprise accounts Compose offers a datacenter abstraction layer,
 clusters, in which account administrators can define private networking,
@@ -283,7 +283,7 @@ plan). The syntax for Pachelbel, however, is almost identical.
 
 ### 2. VPNs and Routing
 
-*   [input.yml](/enterprise/02-vpns-and-routing/input.yml)
+*   [input.yml](enterprise/02-vpns-and-routing/input.yml)
 
 By default Compose deployments to datacenters return publicly addressable
 endpoint URLs (that is, the database endpoints are on the public internet).
