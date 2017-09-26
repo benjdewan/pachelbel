@@ -163,8 +163,11 @@ func (cxn *Connection) Process(accessors []Accessor) error {
 // the 'wait' parameter is true Deprovision waits on the deprovision
 // recipes to complete. Otherwise Deprovision returns fast
 func (cxn *Connection) Deprovision(deployments []string, timeout float64) error {
-	return cxn.Process(resolveDeprovisionObjects(cxn.client,
-		deployments, timeout))
+	accessors := resolveDeprovisionObjects(cxn.client, deployments, timeout)
+	if len(accessors) == 0 {
+		return nil
+	}
+	return cxn.Process(accessors)
 }
 
 // ConnectionYAML writes out the connection strings for all the
