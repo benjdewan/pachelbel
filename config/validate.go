@@ -20,7 +20,10 @@
 
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/benjdewan/pachelbel/connection"
+)
 
 var validRoles = map[string]struct{}{
 	"admin":     {},
@@ -28,25 +31,15 @@ var validRoles = map[string]struct{}{
 	"manager":   {},
 }
 
-var validTypes = map[string]struct{}{
-	"mongodb":        {},
-	"rethink":        {},
-	"elastic_search": {},
-	"redis":          {},
-	"postgresql":     {},
-	"rabbitmq":       {},
-	"etcd":           {},
-	"mysql":          {},
-	"janusgraph":     {},
-	"scylla":         {},
-	"disque":         {},
-}
+// Databases is a map of database types Compose supports to the verisons of
+// those databases that Compose supports
+var Databases map[string][]connection.DatabaseVersion
 
 func validateType(deploymentType string) []string {
 	errs := []string{}
 	if len(deploymentType) == 0 {
 		errs = append(errs, "The 'type' field is required")
-	} else if _, ok := validTypes[deploymentType]; !ok {
+	} else if _, ok := Databases[deploymentType]; !ok {
 		errs = append(errs,
 			fmt.Sprintf("'%s' is not a valid deployment type.", deploymentType))
 	}

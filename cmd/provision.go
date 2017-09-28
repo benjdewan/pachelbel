@@ -45,18 +45,13 @@ configuration no actions are taken.`,
 func runProvision(cmd *cobra.Command, args []string) {
 	assertCanStart(args)
 
-	cfg, err := readConfigs(args)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	cxn, err := connection.New(viper.GetString("log-file"),
 		viper.GetBool("dry-run"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := cxn.Init(viper.GetString("api-key")); err != nil {
+	if err = cxn.Init(viper.GetString("api-key")); err != nil {
 		log.Fatal(err)
 	}
 	defer func() {
@@ -64,6 +59,16 @@ func runProvision(cmd *cobra.Command, args []string) {
 			panic(closeErr)
 		}
 	}()
+
+	config.Databases, err = cxn.SupportedDatabases()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfg, err := readConfigs(args)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	process(cxn, cfg.Accessors)
 

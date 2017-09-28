@@ -27,7 +27,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/benjdewan/pachelbel/connection"
+	cxn "github.com/benjdewan/pachelbel/connection"
 )
 
 func TestSplitYAMLObjects(t *testing.T) {
@@ -49,7 +49,7 @@ func TestSplitYAMLObjects(t *testing.T) {
 func TestFiltered(t *testing.T) {
 	for i, test := range filteredTests {
 		clusterFilter = test.clusterFilter
-		actual := filtered(connection.Deployment(test.deployment))
+		actual := filtered(cxn.Deployment(test.deployment))
 		if actual != test.expected {
 			t.Errorf("Test #%d: With filter: %v\nDeployment: %v\nExpected '%v' but saw '%v'",
 				i, clusterFilter, test.deployment, test.expected,
@@ -59,6 +59,19 @@ func TestFiltered(t *testing.T) {
 }
 
 func TestReadConfig(t *testing.T) {
+	Databases = map[string][]cxn.DatabaseVersion{
+		"mongodb":        {},
+		"rethink":        {},
+		"elastic_search": {},
+		"redis":          {},
+		"postgresql":     {},
+		"rabbitmq":       {},
+		"etcd":           {},
+		"mysql":          {},
+		"janusgraph":     {},
+		"scylla":         {},
+		"disque":         {},
+	}
 	for i, test := range readConfigTests {
 		c := newConfig()
 		err := c.readConfig([]byte(test.config))

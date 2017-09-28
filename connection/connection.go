@@ -32,6 +32,15 @@ import (
 	"github.com/golang-collections/go-datastructures/queue"
 )
 
+// DatabaseVersion contains version strings and indication of whether
+// that version is deprecated or not. Pachelbel cannot create a new
+// deployment running a deprecated version of a database, but it can
+// query/work with an existing database running a deprecated version.
+type DatabaseVersion struct {
+	Version    string
+	Deprecated bool
+}
+
 // Accessor is the interface for any Compose Deployment information request.
 // To make any deployment mutations (creating new deployments or updating
 // existing ones), the provided object must also implement the Deployment
@@ -129,6 +138,36 @@ func (cxn *Connection) Init(apiKey string) error {
 
 	cxn.datacenters, err = fetchDatacenters(cxn.client)
 	return err
+}
+
+// SupportedDatabases returns a map of database types supported by Compose
+// to the versions (both supported and deprecated) Compose works with.
+// New deployments cannot be made using deprecated versions
+func (cxn *Connection) SupportedDatabases() (map[string][]DatabaseVersion, error) {
+	dbs, errs := cxn.client.GetDatabases()
+	if len(errs) != 0 {
+		return nil, fmt.Errorf("Unable to enumerate supported database types:\n%v", errs)
+	}
+	return buildDatabaseVersionMap(*dbs), nil
+}
+
+func buildDatabaseVersionMap(dbs []compose.Database) map[string][]DatabaseVersion {
+	databases := make(map[string][]DatabaseVersion)
+	for _, db := range dbs {
+		databases[db.DatabaseType] = buildDatabaseVersionSlice(db.Embedded.Versions)
+	}
+	return databases
+}
+
+func buildDatabaseVersionSlice(vs []compose.Version) []DatabaseVersion {
+	versions := []DatabaseVersion{}
+	for _, v := range vs {
+		versions = append(versions, DatabaseVersion{
+			Version:    v.Version,
+			Deprecated: v.Status == "deprecated",
+		})
+	}
+	return versions
 }
 
 // Process reads through the provided slice of Accessors, creates or edits

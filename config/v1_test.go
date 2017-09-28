@@ -20,9 +20,25 @@
 
 package config
 
-import "testing"
+import (
+	cxn "github.com/benjdewan/pachelbel/connection"
+	"testing"
+)
 
 func TestValidateV1(t *testing.T) {
+	Databases = map[string][]cxn.DatabaseVersion{
+		"mongodb":        {},
+		"rethink":        {},
+		"elastic_search": {},
+		"redis":          {},
+		"postgresql":     {},
+		"rabbitmq":       {},
+		"etcd":           {},
+		"mysql":          {},
+		"janusgraph":     {},
+		"scylla":         {},
+		"disque":         {},
+	}
 	for i, test := range configValidateV1Tests {
 		err := validateV1(test.config, "ignored")
 		if test.valid {
