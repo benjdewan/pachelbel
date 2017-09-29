@@ -29,7 +29,7 @@ var validRoles = map[string]struct{}{
 }
 
 var (
-	// Databases is a map of database types Compose supports to the verisons of
+	// Databases is a map of database types Compose supports to the versions of
 	// those databases that Compose supports
 	Databases map[string][]string
 	// Clusters is a map of Cluster names to IDs to validate that the cluster
