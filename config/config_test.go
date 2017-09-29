@@ -79,11 +79,11 @@ func TestReadConfig(t *testing.T) {
 }
 
 func setValidGlobals() {
-	Databases = map[string][]cxn.DatabaseVersion{
+	Databases = map[string][]string{
 		"mongodb":        {},
 		"rethink":        {},
 		"elastic_search": {},
-		"redis":          {},
+		"redis":          {"3.2.9"},
 		"postgresql":     {},
 		"rabbitmq":       {},
 		"etcd":           {},
@@ -238,6 +238,24 @@ name: "names-are-not-validated"
 datacenter: "softlayer:dallas-1"
 cache_mode: true`,
 		valid: true,
+	},
+	{
+		config: `---
+config_version: 1
+type: "redis"
+name: "names-are-not-validated"
+datacenter: "softlayer:dallas-1"
+version: 3.2.9`,
+		valid: true,
+	},
+	{
+		config: `---
+config_version: 1
+type: "redis"
+name: "names-are-not-validated"
+datacenter: "softlayer:dallas-1"
+version: 11.0`,
+		valid: false,
 	},
 	{
 		config: `---

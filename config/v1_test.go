@@ -145,6 +145,26 @@ var configValidateV1Tests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
+			Datacenter:    "aws:us-east-1",
+			Version:       "3.2.9",
+		},
+		valid: true,
+	},
+	{
+		config: deploymentV1{
+			ConfigVersion: 1,
+			Type:          "redis",
+			Name:          "names-are-not-validated",
+			Datacenter:    "aws:us-east-1",
+			Version:       "1.0.0",
+		},
+		valid: false,
+	},
+	{
+		config: deploymentV1{
+			ConfigVersion: 1,
+			Type:          "redis",
+			Name:          "names-are-not-validated",
 			Tags:          []string{"tags-are-not-validated"},
 		},
 		valid: true,

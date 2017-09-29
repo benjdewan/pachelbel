@@ -29,7 +29,7 @@ func validateV1(d deploymentV1, input string) (deploymentV1, error) {
 	errs := []string{}
 
 	errs = append(errs, validateConfigVersionV1(d.ConfigVersion)...)
-	errs = append(errs, validateType(d.Type)...)
+	errs = append(errs, validateVersionByType(d.Version, d.Type)...)
 	errs = append(errs, validateDeploymentTargetV1(d.Cluster, d.Datacenter, d.Tags)...)
 	errs = append(errs, validateClusterV1(&d)...)
 	errs = append(errs, validateDatacenterV1(d)...)

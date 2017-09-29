@@ -20,10 +20,7 @@
 
 package config
 
-import (
-	"fmt"
-	"github.com/benjdewan/pachelbel/connection"
-)
+import "fmt"
 
 var validRoles = map[string]struct{}{
 	"admin":     {},
@@ -34,7 +31,7 @@ var validRoles = map[string]struct{}{
 var (
 	// Databases is a map of database types Compose supports to the verisons of
 	// those databases that Compose supports
-	Databases map[string][]connection.DatabaseVersion
+	Databases map[string][]string
 	// Clusters is a map of Cluster names to IDs to validate that the cluster
 	// a user specifies exists
 	Clusters map[string]string
@@ -43,15 +40,31 @@ var (
 	Datacenters map[string]struct{}
 )
 
-func validateType(deploymentType string) []string {
+func validateVersionByType(version string, deploymentType string) []string {
 	errs := []string{}
 	if len(deploymentType) == 0 {
 		errs = append(errs, "The 'type' field is required")
-	} else if _, ok := Databases[deploymentType]; !ok {
+	} else if versions, ok := Databases[deploymentType]; ok {
+		errs = append(errs, validateVersion(version, deploymentType, versions)...)
+	} else {
 		errs = append(errs,
 			fmt.Sprintf("'%s' is not a valid deployment type.", deploymentType))
 	}
 	return errs
+}
+
+func validateVersion(version, deploymentType string, versions []string) []string {
+	if len(version) == 0 {
+		return []string{}
+	}
+
+	for _, v := range versions {
+		if version == v {
+			return []string{}
+		}
+	}
+	return []string{fmt.Sprintf("Compose does not offer version '%s' for '%s'",
+		version, deploymentType)}
 }
 
 func validateName(name string) []string {
