@@ -29,14 +29,12 @@ import (
 
 func create(cxn *Connection, accessor Accessor) error {
 	deployment := accessor.(Deployment)
-	dParams, err := deploymentParams(deployment, cxn)
-	if err != nil {
-		return err
-	}
 
-	newDeployment, errs := cxn.client.CreateDeployment(dParams)
+	newDeployment, errs := cxn.client.CreateDeployment(deploymentParams(deployment,
+		cxn.accountID))
 	if len(errs) != 0 {
-		return fmt.Errorf("Unable to create '%s': %v\n", dParams.Name, errs)
+		return fmt.Errorf("Unable to create '%s': %v\n",
+			deployment.GetName(), errs)
 	}
 
 	if err := cxn.waitOnRecipe(newDeployment.ProvisionRecipeID, deployment.GetTimeout()); err != nil {
@@ -51,18 +49,16 @@ func create(cxn *Connection, accessor Accessor) error {
 	return nil
 }
 
-func deploymentParams(deployment Deployment, cxn *Connection) (compose.DeploymentParams, error) {
+func deploymentParams(deployment Deployment, accountID string) compose.DeploymentParams {
 	dParams := compose.DeploymentParams{
 		Name:         deployment.GetName(),
-		AccountID:    cxn.accountID,
+		AccountID:    accountID,
 		DatabaseType: deployment.GetType(),
 		Notes:        deployment.GetNotes(),
+		SSL:          deployment.GetSSL(),
 	}
 
-	dParams, err := setDeploymentType(cxn, deployment, dParams)
-	if err != nil {
-		return dParams, err
-	}
+	dParams = setDeploymentType(deployment, dParams)
 
 	if len(deployment.GetVersion()) > 0 {
 		dParams.Version = deployment.GetVersion()
@@ -80,37 +76,19 @@ func deploymentParams(deployment Deployment, cxn *Connection) (compose.Deploymen
 		dParams.Units = deployment.GetScaling()
 	}
 
-	if deployment.GetSSL() {
-		dParams.SSL = true
-	}
-
-	return dParams, nil
+	return dParams
 }
 
-func setDeploymentType(cxn *Connection, deployment Deployment, dParams compose.DeploymentParams) (compose.DeploymentParams, error) {
+func setDeploymentType(deployment Deployment, dParams compose.DeploymentParams) compose.DeploymentParams {
 	if deployment.TagDeployment() {
-		//TODO fetch tags and validate that the provided tags exist.
 		dParams.ProvisioningTags = deployment.GetTags()
-		return dParams, nil
+	} else if deployment.ClusterDeployment() {
+		dParams.ClusterID = deployment.GetCluster()
+	} else {
+		dParams.Datacenter = deployment.GetDatacenter()
 	}
 
-	if deployment.ClusterDeployment() {
-		clusterID, ok := cxn.clusterIDsByName[deployment.GetCluster()]
-		if !ok {
-			return dParams, fmt.Errorf("Unable to provsion '%s'. The specified cluster name, '%s' does not map to a known cluster.",
-				deployment.GetName(), deployment.GetCluster())
-		}
-		dParams.ClusterID = clusterID
-		return dParams, nil
-	}
-
-	datacenter := deployment.GetDatacenter()
-	if _, ok := cxn.datacenters[datacenter]; !ok {
-		return dParams, fmt.Errorf("Unable to provision '%s'. '%s' is not a known datacenter.",
-			deployment.GetName(), datacenter)
-	}
-	dParams.Datacenter = datacenter
-	return dParams, nil
+	return dParams
 }
 
 func dryRunCreate(cxn *Connection, accessor Accessor) error {

@@ -227,7 +227,7 @@ func (cfg *Config) readConfigV1(blob []byte) error {
 	)
 	if err = yaml.Unmarshal(blob, &d); err != nil {
 		return err
-	} else if err = validateV1(d, string(blob)); err != nil {
+	} else if d, err = validateV1(d, string(blob)); err != nil {
 		return err
 	}
 

@@ -21,26 +21,13 @@
 package config
 
 import (
-	cxn "github.com/benjdewan/pachelbel/connection"
 	"testing"
 )
 
 func TestValidateV1(t *testing.T) {
-	Databases = map[string][]cxn.DatabaseVersion{
-		"mongodb":        {},
-		"rethink":        {},
-		"elastic_search": {},
-		"redis":          {},
-		"postgresql":     {},
-		"rabbitmq":       {},
-		"etcd":           {},
-		"mysql":          {},
-		"janusgraph":     {},
-		"scylla":         {},
-		"disque":         {},
-	}
+	setValidGlobals()
 	for i, test := range configValidateV1Tests {
-		err := validateV1(test.config, "ignored")
+		_, err := validateV1(test.config, "ignored")
 		if test.valid {
 			if err != nil {
 				t.Errorf("Test #%d: Expected\n%v\n to be valid, but saw: %v",
@@ -122,7 +109,7 @@ var configValidateV1Tests = []struct {
 			ConfigVersion: 1,
 			Type:          "invalid-type",
 			Name:          "names-are-not-validated",
-			Datacenter:    "datacenters-are-not-validated",
+			Datacenter:    "aws:us-east-1",
 		},
 		valid: false,
 	},
@@ -131,7 +118,7 @@ var configValidateV1Tests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
-			Cluster:       "clusters-are-not-validated",
+			Cluster:       "valid",
 		},
 		valid: true,
 	},
@@ -140,7 +127,16 @@ var configValidateV1Tests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
-			Datacenter:    "datacenters-are-not-validated",
+			Cluster:       "cluster-names-are-validated",
+		},
+		valid: false,
+	},
+	{
+		config: deploymentV1{
+			ConfigVersion: 1,
+			Type:          "redis",
+			Name:          "names-are-not-validated",
+			Datacenter:    "aws:us-east-1",
 		},
 		valid: true,
 	},
@@ -159,8 +155,8 @@ var configValidateV1Tests = []struct {
 			Type:          "redis",
 			Name:          "names-are-not-validated",
 			Tags:          []string{"tags-are-not-validated"},
-			Datacenter:    "datacenters-are-not-validated",
-			Cluster:       "clusters-are-not-validated",
+			Datacenter:    "softlayer:dallas-1",
+			Cluster:       "also-valid",
 		},
 		valid: false,
 	},
@@ -170,7 +166,7 @@ var configValidateV1Tests = []struct {
 			Type:          "redis",
 			Name:          "names-are-not-validated",
 			Tags:          []string{"tags-are-not-validated"},
-			Datacenter:    "datacenters-are-not-validated",
+			Datacenter:    "softlayer:dallas-1",
 		},
 		valid: false,
 	},
@@ -180,7 +176,7 @@ var configValidateV1Tests = []struct {
 			Type:          "redis",
 			Name:          "names-are-not-validated",
 			Tags:          []string{"tags-are-not-validated"},
-			Cluster:       "clusters-are-not-validated",
+			Cluster:       "valid",
 		},
 		valid: false,
 	},
@@ -189,8 +185,8 @@ var configValidateV1Tests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
-			Cluster:       "clusters-are-not-validated",
-			Datacenter:    "datacenters-are-not-validated",
+			Cluster:       "also-valid",
+			Datacenter:    "aws:us-east-1",
 		},
 		valid: false,
 	},
@@ -207,7 +203,7 @@ var configValidateV1Tests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
-			Datacenter:    "datacenters-are-not-validated",
+			Datacenter:    "softlayer:dallas-1",
 			Scaling:       &invalidScaling,
 		},
 		valid: false,
@@ -217,7 +213,7 @@ var configValidateV1Tests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
-			Datacenter:    "datacenters-are-not-validated",
+			Datacenter:    "aws:us-east-1",
 			Scaling:       &validScaling,
 		},
 		valid: true,
@@ -227,7 +223,7 @@ var configValidateV1Tests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
-			Datacenter:    "datacenters-are-not-validated",
+			Datacenter:    "aws:us-east-1",
 			WiredTiger:    true,
 		},
 		valid: false,
@@ -237,7 +233,7 @@ var configValidateV1Tests = []struct {
 			ConfigVersion: 1,
 			Type:          "mongodb",
 			Name:          "names-are-not-validated",
-			Datacenter:    "datacenters-are-not-validated",
+			Datacenter:    "softlayer:dallas-1",
 			WiredTiger:    true,
 		},
 		valid: true,
@@ -247,7 +243,7 @@ var configValidateV1Tests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
-			Datacenter:    "datacenters-are-not-validated",
+			Datacenter:    "softlayer:dallas-1",
 			Teams: [](*TeamV1){
 				&TeamV1{
 					ID:   "team-ids-are-not-validated",
@@ -262,7 +258,7 @@ var configValidateV1Tests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
-			Datacenter:    "datacenters-are-not-validated",
+			Datacenter:    "aws:us-east-1",
 			Teams: [](*TeamV1){
 				&TeamV1{
 					ID:   "team-ids-are-not-validated",
@@ -281,7 +277,7 @@ var configValidateV1Tests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
-			Datacenter:    "datacenters-are-not-validated",
+			Datacenter:    "softlayer:dallas-1",
 			Teams: [](*TeamV1){
 				&TeamV1{
 					ID:   "team-ids-are-not-validated",

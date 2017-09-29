@@ -31,9 +31,17 @@ var validRoles = map[string]struct{}{
 	"manager":   {},
 }
 
-// Databases is a map of database types Compose supports to the verisons of
-// those databases that Compose supports
-var Databases map[string][]connection.DatabaseVersion
+var (
+	// Databases is a map of database types Compose supports to the verisons of
+	// those databases that Compose supports
+	Databases map[string][]connection.DatabaseVersion
+	// Clusters is a map of Cluster names to IDs to validate that the cluster
+	// a user specifies exists
+	Clusters map[string]string
+	// Datacenters is a map of names to validate that the datacenter slugs a user
+	// specifies exist
+	Datacenters map[string]struct{}
+)
 
 func validateType(deploymentType string) []string {
 	errs := []string{}

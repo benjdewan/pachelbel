@@ -47,6 +47,7 @@ func TestSplitYAMLObjects(t *testing.T) {
 }
 
 func TestFiltered(t *testing.T) {
+	setValidGlobals()
 	for i, test := range filteredTests {
 		clusterFilter = test.clusterFilter
 		actual := filtered(cxn.Deployment(test.deployment))
@@ -59,19 +60,7 @@ func TestFiltered(t *testing.T) {
 }
 
 func TestReadConfig(t *testing.T) {
-	Databases = map[string][]cxn.DatabaseVersion{
-		"mongodb":        {},
-		"rethink":        {},
-		"elastic_search": {},
-		"redis":          {},
-		"postgresql":     {},
-		"rabbitmq":       {},
-		"etcd":           {},
-		"mysql":          {},
-		"janusgraph":     {},
-		"scylla":         {},
-		"disque":         {},
-	}
+	setValidGlobals()
 	for i, test := range readConfigTests {
 		c := newConfig()
 		err := c.readConfig([]byte(test.config))
@@ -86,6 +75,30 @@ func TestReadConfig(t *testing.T) {
 					i, test.config)
 			}
 		}
+	}
+}
+
+func setValidGlobals() {
+	Databases = map[string][]cxn.DatabaseVersion{
+		"mongodb":        {},
+		"rethink":        {},
+		"elastic_search": {},
+		"redis":          {},
+		"postgresql":     {},
+		"rabbitmq":       {},
+		"etcd":           {},
+		"mysql":          {},
+		"janusgraph":     {},
+		"scylla":         {},
+		"disque":         {},
+	}
+	Clusters = map[string]string{
+		"valid":      "123456789",
+		"also-valid": "987654321",
+	}
+	Datacenters = map[string]struct{}{
+		"aws:us-east-1":      {},
+		"softlayer:dallas-1": {},
 	}
 }
 
@@ -120,7 +133,7 @@ var filteredTests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
-			Cluster:       "clusters-are-not-validated",
+			Cluster:       "valid",
 			WiredTiger:    true,
 		},
 		clusterFilter: emptyClusterFilter,
@@ -131,7 +144,7 @@ var filteredTests = []struct {
 			ConfigVersion: 1,
 			Type:          "redis",
 			Name:          "names-are-not-validated",
-			Cluster:       "clusters-are-not-validated",
+			Cluster:       "also-valid",
 			WiredTiger:    true,
 		},
 		clusterFilter: oneClusterFilter,
@@ -155,7 +168,7 @@ var readConfigTests = []struct {
 config_version: 1,
 type: "invalid-type"
 name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"`,
+datacenter: "aws:us-east-1"`,
 		valid: false,
 	},
 	{
@@ -163,7 +176,7 @@ datacenter: "datacenters-are-not-validated"`,
 config_version: 1
 type: "redis"
 name: "names-are-not-validated"
-cluster: "clusters-are-not-validated"`,
+cluster: "valid"`,
 		valid: true,
 	},
 	{
@@ -171,7 +184,7 @@ cluster: "clusters-are-not-validated"`,
 config_version: 1
 type: "redis"
 name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"`,
+datacenter: "softlayer:dallas-1"`,
 		valid: true,
 	},
 	{
@@ -179,8 +192,8 @@ datacenter: "datacenters-are-not-validated"`,
 config_version: 1
 type: "redis"
 name: "names-are-not-validated"
-cluster: "clusters-are-not-validated"
-datacenter: "datacenters-are-not-validated"`,
+cluster: "also-valid"
+datacenter: "aws:us-east-1"`,
 		valid: false,
 	},
 	{
@@ -195,7 +208,7 @@ name: "names-are-not-validated"`,
 config_version: 1
 type: "redis"
 name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
+datacenter: "aws:us-east-1"
 scaling: 0`,
 		valid: false,
 	},
@@ -204,7 +217,7 @@ scaling: 0`,
 config_version: 1
 type: "redis"
 name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
+datacenter: "softlayer:dallas-1"
 scaling: 2`,
 		valid: true,
 	},
@@ -213,7 +226,7 @@ scaling: 2`,
 config_version: 1
 type: "redis"
 name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
+datacenter: "softlayer:dallas-1"
 wired_tiger: true`,
 		valid: false,
 	},
@@ -222,7 +235,7 @@ wired_tiger: true`,
 config_version: 1
 type: "redis"
 name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
+datacenter: "softlayer:dallas-1"
 cache_mode: true`,
 		valid: true,
 	},
@@ -231,7 +244,7 @@ cache_mode: true`,
 config_version: 1
 type: "mongodb"
 name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
+datacenter: "softlayer:dallas-1"
 cache_mode: true`,
 		valid: false,
 	},
@@ -240,7 +253,7 @@ cache_mode: true`,
 config_version: 1
 type: "mongodb"
 name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
+datacenter: "aws:us-east-1"
 wired_tiger: true`,
 		valid: true,
 	},
@@ -249,7 +262,7 @@ wired_tiger: true`,
 config_version: 1
 type: "redis"
 name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
+datacenter: "aws:us-east-1"
 teams:
   - id: "team-ids-are-not-validated"
     role: "not-a-real-role"`,
@@ -260,7 +273,7 @@ teams:
 config_version: 1
 type: "redis"
 name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
+datacenter: "softlayer:dallas-1"
 teams:
   - id: "team-ids-are-not-validated"
     role: "admin"
@@ -273,7 +286,7 @@ teams:
 config_version: 1
 type: "redis"
 name: "names-are-not-validated"
-datacenter: "datacenters-are-not-validated"
+datacenter: "aws:us-east-1"
 teams:
   - id: "team-ids-are-not-validated"
     role: "admin"

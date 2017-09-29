@@ -91,8 +91,6 @@ type Connection struct {
 	logFile           *os.File
 	dryRun            bool
 	accountID         string
-	clusterIDsByName  map[string]string
-	datacenters       map[string]struct{}
 	deploymentsByName *sync.Map
 	newDeploymentIDs  *sync.Map
 	pb                *progress.ProgressBars
@@ -127,17 +125,41 @@ func (cxn *Connection) Init(apiKey string) error {
 	}
 
 	cxn.accountID, err = fetchAccountID(cxn.client)
-	if err != nil {
-		return err
-	}
-
-	cxn.clusterIDsByName, err = fetchClusters(cxn.client)
-	if err != nil {
-		return err
-	}
-
-	cxn.datacenters, err = fetchDatacenters(cxn.client)
 	return err
+}
+
+// Clusters returns a map of cluster IDs by name
+func (cxn *Connection) Clusters() (map[string]string, error) {
+	clusterIDsByName := make(map[string]string)
+
+	clusters, errs := cxn.client.GetClusters()
+	if len(errs) != 0 || clusters == nil {
+		return clusterIDsByName, fmt.Errorf("Failed to get cluster information:\n%s",
+			errsOut(errs))
+	}
+
+	for _, cluster := range *clusters {
+		clusterIDsByName[cluster.Name] = cluster.ID
+	}
+	return clusterIDsByName, nil
+}
+
+// Datacenters returns a map of datacenters slugs to empty structs (for fast
+// lookup).
+func (cxn *Connection) Datacenters() (map[string]struct{}, error) {
+	datacenters := make(map[string]struct{})
+
+	datacenterObjs, errs := cxn.client.GetDatacenters()
+	if len(errs) != 0 || datacenterObjs == nil {
+		return datacenters, fmt.Errorf("Failed to get datacenter information:\n%s",
+			errsOut(errs))
+	}
+
+	for _, datacenter := range *datacenterObjs {
+		datacenters[datacenter.Slug] = struct{}{}
+	}
+
+	return datacenters, nil
 }
 
 // SupportedDatabases returns a map of database types supported by Compose

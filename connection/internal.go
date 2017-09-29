@@ -108,37 +108,6 @@ func teamListToMap(in []compose.Team) map[string]struct{} {
 	return out
 }
 
-func fetchClusters(client *compose.Client) (map[string]string, error) {
-	clusterIDsByName := make(map[string]string)
-
-	clusters, errs := client.GetClusters()
-	if len(errs) != 0 || clusters == nil {
-		return clusterIDsByName, fmt.Errorf("Failed to get cluster information:\n%s",
-			errsOut(errs))
-	}
-
-	for _, cluster := range *clusters {
-		clusterIDsByName[cluster.Name] = cluster.ID
-	}
-	return clusterIDsByName, nil
-}
-
-func fetchDatacenters(client *compose.Client) (map[string]struct{}, error) {
-	datacenters := make(map[string]struct{})
-
-	datacenterObjs, errs := client.GetDatacenters()
-	if len(errs) != 0 || datacenterObjs == nil {
-		return datacenters, fmt.Errorf("Failed to get datacenter information:\n%s",
-			errsOut(errs))
-	}
-
-	for _, datacenter := range *datacenterObjs {
-		datacenters[datacenter.Slug] = struct{}{}
-	}
-
-	return datacenters, nil
-}
-
 func fetchAccountID(client *compose.Client) (string, error) {
 	account, errs := client.GetAccount()
 	if len(errs) != 0 {

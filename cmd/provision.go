@@ -60,12 +60,7 @@ func runProvision(cmd *cobra.Command, args []string) {
 		}
 	}()
 
-	config.Databases, err = cxn.SupportedDatabases()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cfg, err := readConfigs(args)
+	cfg, err := readConfigs(cxn, args)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,7 +83,22 @@ func writeOutput(cxn *connection.Connection, endpointMap map[string]string) {
 	}
 }
 
-func readConfigs(paths []string) (*config.Config, error) {
+func readConfigs(cxn *connection.Connection, paths []string) (*config.Config, error) {
+	var err error
+	config.Databases, err = cxn.SupportedDatabases()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	config.Clusters, err = cxn.Clusters()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	config.Datacenters, err = cxn.Datacenters()
+	if err != nil {
+		log.Fatal(err)
+	}
 	config.BuildClusterFilter(viper.GetStringSlice("cluster"))
 	config.BuildDatacenterFilter(viper.GetStringSlice("datacenter"))
 
