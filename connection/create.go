@@ -56,27 +56,13 @@ func deploymentParams(deployment Deployment, accountID string) compose.Deploymen
 		DatabaseType: deployment.GetType(),
 		Notes:        deployment.GetNotes(),
 		SSL:          deployment.GetSSL(),
+		Version:      deployment.GetVersion(),
+		CacheMode:    deployment.GetCacheMode(),
+		WiredTiger:   deployment.GetWiredTiger(),
+		Units:        deployment.GetScaling(),
 	}
 
-	dParams = setDeploymentType(deployment, dParams)
-
-	if len(deployment.GetVersion()) > 0 {
-		dParams.Version = deployment.GetVersion()
-	}
-
-	if deployment.GetWiredTiger() {
-		dParams.WiredTiger = true
-	}
-
-	if deployment.GetCacheMode() {
-		dParams.CacheMode = true
-	}
-
-	if deployment.GetScaling() > 1 {
-		dParams.Units = deployment.GetScaling()
-	}
-
-	return dParams
+	return setDeploymentType(deployment, dParams)
 }
 
 func setDeploymentType(deployment Deployment, dParams compose.DeploymentParams) compose.DeploymentParams {
