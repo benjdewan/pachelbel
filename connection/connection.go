@@ -119,20 +119,20 @@ func (cxn *Connection) Init(apiKey string) error {
 	return err
 }
 
-// Clusters returns a map of cluster IDs by name
+// Clusters returns a map of cluster IDs by name and ID.
 func (cxn *Connection) Clusters() (map[string]string, error) {
-	clusterIDsByName := make(map[string]string)
+	clusters := make(map[string]string)
 
-	clusters, errs := cxn.client.GetClusters()
+	clusterList, errs := cxn.client.GetClusters()
 	if len(errs) != 0 || clusters == nil {
-		return clusterIDsByName, fmt.Errorf("Failed to get cluster information:\n%s",
-			errsOut(errs))
+		return clusters, fmt.Errorf("Failed to get cluster information:\n%s", errs)
 	}
 
-	for _, cluster := range *clusters {
-		clusterIDsByName[cluster.Name] = cluster.ID
+	for _, cluster := range *clusterList {
+		clusters[cluster.Name] = cluster.ID
+		clusters[cluster.ID] = cluster.ID
 	}
-	return clusterIDsByName, nil
+	return clusters, nil
 }
 
 // Datacenters returns a map of datacenters slugs to empty structs (for fast
