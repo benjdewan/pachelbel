@@ -40,6 +40,13 @@ var (
 	Datacenters map[string]struct{}
 )
 
+func validateType(deploymentType string) []string {
+	if _, ok := Databases[deploymentType]; !ok {
+		return []string{fmt.Sprintf("'%s' is not a valid deployment type", deploymentType)}
+	}
+	return []string{}
+}
+
 func validateVersionByType(version string, deploymentType string) []string {
 	errs := []string{}
 	if len(deploymentType) == 0 {

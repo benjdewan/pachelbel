@@ -28,7 +28,7 @@ import (
 func validateDeploymentClientV2(d deploymentClientV2, input string) error {
 	errs := []string{}
 
-	errs = append(errs, validateVersionByType("", d.Type)...)
+	errs = append(errs, validateType(d.Type)...)
 	errs = append(errs, validateName(d.Name)...)
 	if len(errs) == 0 {
 		return nil
