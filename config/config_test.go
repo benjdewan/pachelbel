@@ -64,7 +64,7 @@ func setValidGlobals() {
 		"rethink":        {},
 		"elastic_search": {},
 		"redis":          {"3.2.9"},
-		"postgresql":     {},
+		"postgresql":     {"9.6.3", "9.6.4", "9.6.5"},
 		"rabbitmq":       {},
 		"etcd":           {},
 		"mysql":          {},
@@ -235,6 +235,42 @@ type: "redis"
 name: "names-are-not-validated"
 datacenter: "softlayer:dallas-1"
 version: 11.0`,
+		valid: false,
+	},
+	{
+		config: `---
+config_version: 1
+type: postgresql
+name: names-are-not-validated
+datacenter: aws:us-east-1
+version: 9.6.*`,
+		valid: true,
+	},
+	{
+		config: `---
+config_version: 1
+type: postgresql
+name: names-are-not-validated
+datacenter: aws:us-east-1
+version: 9.X`,
+		valid: true,
+	},
+	{
+		config: `---
+config_version: 1
+type: postgresql
+name: names-are-not-validated
+datacenter: aws:us-east-1
+version: "*"`,
+		valid: true,
+	},
+	{
+		config: `---
+config_version: 1
+type: postgresql
+name: names-are-not-validated
+datacenter: aws:us-east-1
+version: 10.0`,
 		valid: false,
 	},
 	{

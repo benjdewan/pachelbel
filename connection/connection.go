@@ -49,6 +49,7 @@ type Deployment interface {
 	GetTimeout() float64
 	GetType() string
 	GetVersion() string
+	GetVersionConstraint() string
 	GetWiredTiger() bool
 	GetCacheMode() bool
 }

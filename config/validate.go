@@ -27,33 +27,6 @@ func validateType(deploymentType string) []string {
 	return []string{}
 }
 
-func validateVersionByType(version string, deploymentType string) []string {
-	errs := []string{}
-	if len(deploymentType) == 0 {
-		errs = append(errs, "The 'type' field is required")
-	} else if versions, ok := Databases[deploymentType]; ok {
-		errs = append(errs, validateVersion(version, deploymentType, versions)...)
-	} else {
-		errs = append(errs,
-			fmt.Sprintf("'%s' is not a valid deployment type.", deploymentType))
-	}
-	return errs
-}
-
-func validateVersion(version, deploymentType string, versions []string) []string {
-	if len(version) == 0 {
-		return []string{}
-	}
-
-	for _, v := range versions {
-		if version == v {
-			return []string{}
-		}
-	}
-	return []string{fmt.Sprintf("Compose does not offer version '%s' for '%s'",
-		version, deploymentType)}
-}
-
 func validateName(name string) []string {
 	if len(name) == 0 {
 		return []string{"The 'name' field is required"}

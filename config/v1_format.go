@@ -18,6 +18,9 @@ type deploymentV1 struct {
 	WiredTiger    bool        `json:"wired_tiger"`
 	CacheMode     bool        `json:"cache_mode"`
 	Timeout       *int        `json:"timeout,omitempty"`
+
+	//internal
+	resolvedVersion string
 }
 
 // codebeat:enable[TOO_MANY_IVARS]
@@ -86,6 +89,10 @@ func (d deploymentV1) GetDatacenter() string {
 
 // GetVersion returns the database version the deployment should be deploying
 func (d deploymentV1) GetVersion() string {
+	return d.resolvedVersion
+}
+
+func (d deploymentV1) GetVersionConstraint() string {
 	return d.Version
 }
 

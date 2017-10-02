@@ -15,6 +15,7 @@ import (
 type outputYAML struct {
 	Type        string           `json:"type"`
 	CACert      string           `json:"cacert,omitempty"`
+	Version     string           `json:"version"`
 	Connections []connectionYAML `json:"connections"`
 }
 
@@ -81,6 +82,7 @@ func (b *Builder) convert(deployment *compose.Deployment) ([]byte, error) {
 	outYAML[deployment.Name] = outputYAML{
 		Type:        deployment.Type,
 		CACert:      deployment.CACertificateBase64,
+		Version:     deployment.Version,
 		Connections: connections,
 	}
 	return yaml.Marshal(outYAML)

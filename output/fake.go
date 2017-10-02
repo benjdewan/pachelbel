@@ -51,6 +51,7 @@ func (b *Builder) AddFake(id string) error {
 	segments := strings.Split(id, "::")
 	cxnYAML[segments[1]] = outputYAML{
 		Type:        segments[0],
+		Version:     "0.0.0",
 		CACert:      fakeCA(),
 		Connections: fakeConnectionYAML(segments[0], segments[1]),
 	}

@@ -2,8 +2,10 @@ package connection
 
 import (
 	"fmt"
+	"sort"
 
 	compose "github.com/benjdewan/gocomposeapi"
+	"github.com/masterminds/semver"
 )
 
 func update(cxn *Connection, accessor Accessor) error {
@@ -18,11 +20,11 @@ func update(cxn *Connection, accessor Accessor) error {
 		return err
 	}
 
-	if err := updateNotes(cxn, existing.ID, deployment); err != nil {
+	if err := cxn.attemptNotesUpdate(existing, deployment); err != nil {
 		return err
 	}
 
-	if err := updateVersion(cxn, existing, deployment); err != nil {
+	if err := cxn.attemptVersionUpdate(existing, deployment); err != nil {
 		return err
 	}
 
@@ -64,56 +66,94 @@ func updateScalings(cxn *Connection, id string, deployment Deployment) error {
 	return cxn.waitOnRecipe(recipe.ID, deployment.GetTimeout())
 }
 
-func updateNotes(cxn *Connection, id string, deployment Deployment) error {
-	if len(deployment.GetNotes()) == 0 {
+func (cxn *Connection) attemptNotesUpdate(existing *compose.Deployment, deployment Deployment) error {
+	if len(deployment.GetNotes()) == 0 || existing.Notes == deployment.GetNotes() {
 		return nil
 	}
 
 	_, errs := cxn.client.PatchDeployment(compose.PatchDeploymentParams{
-		DeploymentID: id,
+		DeploymentID: existing.ID,
 		Notes:        deployment.GetNotes(),
 	})
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to update notes for '%s':\n%v",
-			id, errs)
+			existing.Name, errs)
 	}
 	return nil
 }
 
-func updateVersion(cxn *Connection, existing *compose.Deployment, deployment Deployment) error {
-	if len(deployment.GetVersion()) == 0 || existing.Version == deployment.GetVersion() {
+func (cxn *Connection) attemptVersionUpdate(existing *compose.Deployment, deployment Deployment) error {
+	if len(deployment.GetVersionConstraint()) == 0 {
+		return nil
+	}
+	constraint, err := semver.NewConstraint(deployment.GetVersionConstraint())
+	if err != nil {
+		return fmt.Errorf("Unable to parse '%s': %v", deployment.GetVersionConstraint(), err)
+	}
+
+	if withinConstraint(constraint, existing.Version) {
 		return nil
 	}
 
-	transitions, errs := cxn.client.GetVersionsForDeployment(existing.ID)
-	if len(errs) != 0 || transitions == nil {
-		return fmt.Errorf("Error fetching upgrade information for '%s':\n%v",
-			existing.Name, errs)
+	if version, ok := cxn.upgradeExistsForConstraint(constraint, existing.ID); ok {
+		return cxn.updateVersion(version, existing.ID, deployment.GetTimeout())
 	}
 
-	err := validTransition(*transitions, deployment)
-	if err != nil {
-		return err
-	}
-
-	recipe, errs := cxn.client.UpdateVersion(existing.ID,
-		deployment.GetVersion())
-	if errs != nil {
-		return fmt.Errorf("Unable to upgrade '%s' to version '%s':\n%v",
-			deployment.GetName(), deployment.GetVersion(), errs)
-	}
-
-	return cxn.waitOnRecipe(recipe.ID, deployment.GetTimeout())
+	return fmt.Errorf("There is no valid version transition for '%s' that satisfies '%s'", existing.Name, deployment.GetVersionConstraint())
 }
 
-func validTransition(transitions []compose.VersionTransition, deployment Deployment) error {
+func (cxn *Connection) updateVersion(version, id string, timeout float64) error {
+	recipe, errs := cxn.client.UpdateVersion(id, version)
+	if len(errs) != 0 {
+		return fmt.Errorf("Unable to upgrade %s to version %s:\n%v", id, version, errs)
+	}
+	return cxn.waitOnRecipe(recipe.ID, timeout)
+}
+
+func (cxn *Connection) upgradeExistsForConstraint(constraint *semver.Constraints, id string) (string, bool) {
+	transitions, errs := cxn.client.GetVersionsForDeployment(id)
+	if len(errs) != 0 || transitions == nil {
+		return "", false
+	}
+	return transitionWithinConstraint(constraint, *transitions)
+}
+
+func transitionWithinConstraint(constraint *semver.Constraints, transitions []compose.VersionTransition) (string, bool) {
+	possibles := []string{}
 	for _, transition := range transitions {
-		if transition.ToVersion == deployment.GetVersion() {
-			return nil
+		if transition.Method != "in_place" {
+			continue
+		}
+		if withinConstraint(constraint, transition.ToVersion) {
+			possibles = append(possibles, transition.ToVersion)
 		}
 	}
-	return fmt.Errorf("Cannot upgrade '%s' to version '%s'.",
-		deployment.GetName(), deployment.GetVersion())
+	return mostRecentVersion(possibles), len(possibles) > 0
+}
+
+func withinConstraint(constraint *semver.Constraints, raw string) bool {
+	version, err := semver.NewVersion(raw)
+	if err != nil {
+		return false
+	}
+	return constraint.Check(version)
+}
+
+func mostRecentVersion(rawVersions []string) string {
+	if len(rawVersions) == 0 {
+		return ""
+	}
+
+	versions := make([]*semver.Version, len(rawVersions))
+	for i, r := range rawVersions {
+		version, err := semver.NewVersion(r)
+		if err != nil {
+			continue
+		}
+		versions[i] = version
+	}
+	sort.Sort(sort.Reverse(semver.Collection(versions)))
+	return versions[0].String()
 }
 
 func dryRunUpdate(cxn *Connection, accessor Accessor) error {

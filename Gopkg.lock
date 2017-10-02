@@ -44,6 +44,12 @@
   version = "v1.7.3"
 
 [[projects]]
+  name = "github.com/masterminds/semver"
+  packages = ["."]
+  revision = "517734cc7d6470c0d07130e40fd40bdeb9bcd3fd"
+  version = "v1.3.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
@@ -142,6 +148,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "da8a1a76ba6f51608e7e0a738044f95b439c1c4b93e2fbea05b87a790844a8cb"
+  inputs-digest = "2d87944604fefec0c402252c3a84f074e0324f997db0a252a044999c761044e5"
   solver-name = "gps-cdcl"
   solver-version = 1

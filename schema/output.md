@@ -19,6 +19,7 @@ The output schema is a single yaml map of deployment name to deployment connecti
     scheme:   http|https|mongodb|mysql|amqp|amqp|postgres
     username: {{.username}}
   type: elasticsearch|etcd|disque|janusgraph|mongodb|mysql|postgresql|rabbitmq|redis|rethink|scylla
+  version: {{.version}}
 ```
 
 ## Example
@@ -60,6 +61,7 @@ redis-benjdewan-01:
     scheme: redis
     username: alice
   type: redis
+  version: 4.0.2
 
 postgres-benjdewan-02:
   cacert: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS...
@@ -71,5 +73,6 @@ postgres-benjdewan-02:
     scheme: postgres
     username: bjblazkowicz
   type: postgresql
+  version: 9.6.5
 ```
 
