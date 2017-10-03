@@ -4,69 +4,92 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	compose "github.com/benjdewan/gocomposeapi"
+	"github.com/benjdewan/pachelbel/output"
 	"github.com/golang-collections/go-datastructures/queue"
+	"github.com/masterminds/semver"
 )
 
-func (cxn *Connection) getDeploymentByName(name string) (*compose.Deployment, bool) {
-	if item, ok := cxn.deploymentsByName.Load(name); ok {
-		return item.(*compose.Deployment), true
+func (cxn *Connection) addToBuilder(id string, b *output.Builder) error {
+	if output.IsFake(id) {
+		return b.AddFake(id)
 	}
-	return nil, false
+	deployment, errs := cxn.client.GetDeployment(id)
+	if len(errs) != 0 {
+		return fmt.Errorf("Unable to get deployment information for '%s':\n%v", id, errs)
+	}
+	return b.Add(deployment)
 }
 
-func (cxn *Connection) waitOnRecipe(recipeID string, timeout float64) error {
+func (cxn *Connection) existingDeployment(deployment compose.Deployment) (ExistingDeployment, error) {
+	existing := ExistingDeployment{
+		ID:      deployment.ID,
+		Name:    deployment.Name,
+		Type:    deployment.Type,
+		Notes:   deployment.Notes,
+		Version: deployment.Version,
+	}
+
+	transitions, errs := cxn.client.GetVersionsForDeployment(deployment.ID)
+	if len(errs) != 0 {
+		return existing, fmt.Errorf("Unable to get upgrade details for '%s'", deployment.Name)
+	}
+	if transitions != nil {
+		existing.Upgrades = upgradeList(*transitions)
+	}
+
+	scalings, errs := cxn.client.GetScalings(deployment.ID)
+	if len(errs) != 0 {
+		return existing, fmt.Errorf("Unable to get scaling details for '%s'", deployment.Name)
+	}
+
+	existing.Scaling = scalings.AllocatedUnits
+	return existing, nil
+}
+
+func upgradeList(transitions []compose.VersionTransition) []*semver.Version {
+	versions := []*semver.Version{}
+	for _, transition := range transitions {
+		if transition.Method != "in_place" {
+			continue
+		}
+		if version, err := semver.NewVersion(transition.ToVersion); err == nil {
+			versions = append(versions, version)
+		}
+	}
+	return versions
+}
+
+func buildDatabaseVersionMap(dbs []compose.Database) map[string][]string {
+	databases := make(map[string][]string)
+	for _, db := range dbs {
+		databases[db.DatabaseType] = buildDatabaseVersionSlice(db.Embedded.Versions)
+	}
+	return databases
+}
+
+func buildDatabaseVersionSlice(vs []compose.Version) []string {
+	versions := []string{}
+	for _, v := range vs {
+		versions = append(versions, v.Version)
+	}
+	return versions
+}
+
+func (cxn *Connection) wait(recipeID string, timeout float64) error {
 	start := time.Now()
 	for time.Since(start).Seconds() <= timeout {
 		if recipe, errs := cxn.client.GetRecipe(recipeID); len(errs) != 0 {
 			return fmt.Errorf("Error waiting on recipe %v:\n%v\n",
-				recipeID, errsOut(errs))
+				recipeID, errs)
 		} else if recipe.Status == "complete" {
 			return nil
 		}
 		time.Sleep(5 * time.Second)
 	}
 	return fmt.Errorf("Timed out waiting on recipe %v to complete", recipeID)
-}
-
-func addTeamRoles(cxn *Connection, deploymentID string, teamRoles map[string][]string) error {
-	existingRoles, errs := cxn.client.GetTeamRoles(deploymentID)
-	if len(errs) != 0 {
-		return fmt.Errorf("Unable to retrieve team_role information for '%s':\n%v\n",
-			deploymentID, errsOut(errs))
-	}
-	if len(teamRoles) == 0 {
-		return nil
-	}
-
-	for role, teams := range teamRoles {
-		existingTeams := []compose.Team{}
-		for _, existingTeamRoles := range *existingRoles {
-			if existingTeamRoles.Name == role {
-				existingTeams = existingTeamRoles.Teams
-				break
-			}
-		}
-
-		for _, teamID := range filterTeams(teams, existingTeams) {
-			params := compose.TeamRoleParams{
-				Name:   role,
-				TeamID: teamID,
-			}
-
-			_, createErrs := cxn.client.CreateTeamRole(deploymentID,
-				params)
-			if createErrs != nil {
-				return fmt.Errorf("Unable to add team '%s' as '%s' to %s:\n%v\n",
-					teamID, role, deploymentID,
-					errsOut(createErrs))
-			}
-		}
-	}
-	return nil
 }
 
 func filterTeams(teams []string, filterList []compose.Team) []string {
@@ -91,7 +114,7 @@ func teamListToMap(in []compose.Team) map[string]struct{} {
 func fetchAccountID(client *compose.Client) (string, error) {
 	account, errs := client.GetAccount()
 	if len(errs) != 0 {
-		return "", fmt.Errorf("Failed to get account id:\n%s", errsOut(errs))
+		return "", fmt.Errorf("Failed to get account id:\n%v", errs)
 	}
 
 	return account.ID, nil
@@ -117,14 +140,6 @@ func enqueue(q *queue.Queue, items ...interface{}) {
 			panic(err)
 		}
 	}
-}
-
-func errsOut(errs []error) string {
-	msgs := []string{}
-	for _, err := range errs {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "\n")
 }
 
 func flushErrors(q *queue.Queue) error {

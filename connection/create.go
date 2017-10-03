@@ -4,29 +4,17 @@ import (
 	"fmt"
 
 	compose "github.com/benjdewan/gocomposeapi"
-	"github.com/benjdewan/pachelbel/output"
 )
 
-func create(cxn *Connection, accessor Accessor) error {
-	deployment := accessor.(Deployment)
-
-	newDeployment, errs := cxn.client.CreateDeployment(deploymentParams(deployment,
-		cxn.accountID))
+// CreateDeployment creates a deployment in Compose and returns it on success
+func (cxn *Connection) CreateDeployment(d Deployment) (*compose.Deployment, error) {
+	newDeployment, errs := cxn.client.CreateDeployment(deploymentParams(d, cxn.accountID))
 	if len(errs) != 0 {
-		return fmt.Errorf("Unable to create '%s': %v\n",
-			deployment.GetName(), errs)
+		return nil, fmt.Errorf("Unable to create '%s': %v\n",
+			d.GetName(), errs)
 	}
 
-	if err := cxn.waitOnRecipe(newDeployment.ProvisionRecipeID, deployment.GetTimeout()); err != nil {
-		return err
-	}
-
-	if err := addTeamRoles(cxn, newDeployment.ID, deployment.GetTeamRoles()); err != nil {
-		return err
-	}
-	cxn.newDeploymentIDs.Store(newDeployment.ID, struct{}{})
-
-	return nil
+	return newDeployment, cxn.wait(newDeployment.ProvisionRecipeID, d.GetTimeout())
 }
 
 func deploymentParams(deployment Deployment, accountID string) compose.DeploymentParams {
@@ -55,10 +43,4 @@ func setDeploymentType(deployment Deployment, dParams compose.DeploymentParams) 
 	}
 
 	return dParams
-}
-
-func dryRunCreate(cxn *Connection, accessor Accessor) error {
-	cxn.newDeploymentIDs.Store(output.FakeID(accessor.GetType(), accessor.GetName()),
-		struct{}{})
-	return nil
 }

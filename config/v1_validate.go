@@ -5,29 +5,125 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/benjdewan/pachelbel/connection"
+	"github.com/benjdewan/pachelbel/runner"
 	"github.com/masterminds/semver"
 )
 
-func validateV1(d deploymentV1, input string) (deploymentV1, error) {
+func validateV1(d deploymentV1, input string) (runner.Runner, error) {
 	errs := []string{}
 
 	errs = append(errs, validateConfigVersionV1(d.ConfigVersion)...)
-	errs = append(errs, validateVersionByTypeV1(&d)...)
+	errs = append(errs, validateName(d.Name)...)
+	errs = append(errs, validateTeams(d.Teams)...)
 	errs = append(errs, validateDeploymentTargetV1(d.Cluster, d.Datacenter, d.Tags)...)
 	errs = append(errs, validateClusterV1(&d)...)
 	errs = append(errs, validateDatacenterV1(d)...)
-	errs = append(errs, validateName(d.Name)...)
-	errs = append(errs, validateScaling(d.Scaling)...)
 	errs = append(errs, validateWiredTiger(d.WiredTiger, d.Type)...)
 	errs = append(errs, validateCacheMode(d.CacheMode, d.Type)...)
-	errs = append(errs, validateTeams(d.Teams)...)
 
-	if len(errs) == 0 {
-		return d, nil
+	if existing, ok := existingDeployment(d.Name); ok {
+		return validateExistingV1(d, existing, input, errs)
 	}
 
-	return d, fmt.Errorf("Errors occurred while parsing the following deployment object:\n%s\nErrors:\n%s",
+	errs = append(errs, validateVersionByTypeV1(&d)...)
+	errs = append(errs, validateScaling(d.Scaling)...)
+
+	deploymentRunner := runner.Runner{
+		Target: runner.Accessor(d),
+		Action: runner.ActionCreate,
+		Run:    runner.Create,
+	}
+	if len(errs) == 0 {
+		return deploymentRunner, nil
+	}
+
+	return deploymentRunner, fmt.Errorf("Errors occurred while parsing the following deployment object:\n%s\nErrors:\n%s",
 		input, strings.Join(errs, "\n"))
+}
+
+func validateExistingV1(d deploymentV1, existing connection.ExistingDeployment, input string, errs []string) (runner.Runner, error) {
+	d.id = existing.ID
+	actions := []string{}
+
+	if d.Scaling == nil || *d.Scaling == existing.Scaling {
+		scaling := 0
+		d.Scaling = &scaling
+	} else {
+		actions = append(actions, runner.ActionResize)
+		errs = append(errs, validateScaling(d.Scaling)...)
+	}
+	if d.Version == existing.Version {
+		d.Version = ""
+	} else if versionEquivalence(d.Version, existing.Version) {
+		d.Version = ""
+	} else {
+		actions = append(actions, runner.ActionUpgrade)
+		errs = append(errs, validateVersionUpgradeV1(&d, existing.Upgrades)...)
+	}
+
+	if d.Notes == existing.Notes {
+		d.Notes = ""
+	} else if d.Notes != "" {
+		actions = append(errs, runner.ActionComment)
+	}
+	action, runFunc := toAction(actions)
+	deploymentRunner := runner.Runner{
+		Target: runner.Accessor(d),
+		Action: action,
+		Run:    runFunc,
+	}
+	if len(errs) == 0 {
+		return deploymentRunner, nil
+	}
+
+	return deploymentRunner, fmt.Errorf("Errors occurred while parsing the following deployment object:\n%s\nErrors:\n%s",
+		input, strings.Join(errs, "\n"))
+}
+
+func versionEquivalence(requested, existing string) bool {
+	if len(requested) == 0 {
+		return true
+	}
+
+	constraint, err := semver.NewConstraint(requested)
+	if err != nil {
+		return false
+	}
+
+	existingVersion, err := semver.NewVersion(existing)
+	if err != nil {
+		return false
+	}
+
+	return constraint.Check(existingVersion)
+}
+
+func toAction(actions []string) (string, runner.RunFunc) {
+	switch len(actions) {
+	case 0:
+		return runner.ActionLookup, runner.Lookup
+	case 1:
+		return actions[0], runner.Update
+	default:
+		action := strings.Join([]string{strings.Join(actions[:len(actions)-1], ", "), actions[len(actions)-1]}, " and ")
+		return action, runner.Update
+	}
+}
+
+func validateVersionUpgradeV1(d *deploymentV1, versions []*semver.Version) []string {
+	sort.Sort(sort.Reverse(semver.Collection(versions)))
+	constraint, err := semver.NewConstraint(d.Version)
+	if err != nil {
+		return []string{fmt.Sprintf("Cannot parse '%s' as a version constraint: %v", d.Version, err)}
+	}
+	for _, version := range versions {
+		if constraint.Check(version) {
+			d.Version = version.String()
+			return []string{}
+		}
+	}
+	return []string{fmt.Sprintf("No valid version upgrades exist given '%s'", d.Version)}
 }
 
 func validateConfigVersionV1(version int) []string {
@@ -59,7 +155,7 @@ func validateVersionV1(d *deploymentV1, rawVersions []string) []string {
 	constraint, versions, errs := toSemVer(d.Version, rawVersions)
 	for _, version := range versions {
 		if constraint.Check(version) {
-			d.resolvedVersion = version.String()
+			d.Version = version.String()
 			return errs
 		}
 	}

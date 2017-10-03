@@ -9,19 +9,20 @@ import (
 	"path/filepath"
 
 	"github.com/benjdewan/pachelbel/connection"
+	"github.com/benjdewan/pachelbel/runner"
 	"github.com/ghodss/yaml"
 )
 
 // Config returns parsed configuration objects to be
 // consumed by pachelbel for provisioning
 type Config struct {
-	// Accessors is a slice of all the deployments to be provisioned
+	// Runners is a slice of all the deployments to be provisioned
 	// and any that need to be looked up.
 	//
 	// The deployments to be provisioned in this slice have been
 	// filtered by cluster and/or datacenter if those filters were
 	// set.
-	Accessors []connection.Accessor
+	Runners []runner.Runner
 
 	// EndpointMap is a list of mappings to perform to translate
 	// the connection strings returned by Compose.io. This is most
@@ -83,7 +84,7 @@ func ReadFiles(args []string) (*Config, error) {
 
 func newConfig() *Config {
 	return &Config{
-		Accessors:   []connection.Accessor{},
+		Runners:     []runner.Runner{},
 		EndpointMap: make(map[string]string),
 		dNames:      make(map[string]struct{}),
 	}
@@ -163,9 +164,31 @@ func (cfg *Config) readConfigV2(objectType string, blob []byte) error {
 		return cfg.readEndpointMapV2(blob)
 	case "deployment_client":
 		return cfg.readDeploymentClientV2(blob)
+	case "deprovision":
+		return cfg.readDeprovisionV2(blob)
 	default:
 		return fmt.Errorf("'%s' is not a supported object_type", objectType)
 	}
+}
+
+func (cfg *Config) readDeprovisionV2(blob []byte) error {
+	var d deprovisionObjectV2
+	if err := yaml.Unmarshal(blob, &d); err != nil {
+		return err
+	}
+	deprovisioner, skip, err := validateDeprovisionV2(d, string(blob))
+	if skip {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	name := deprovisioner.Target.GetName()
+	if _, ok := cfg.dNames[name]; ok {
+		return fmt.Errorf("Deployment names must be unique across all configuration objects, but '%s' is specified more than once", name)
+	}
+	cfg.dNames[name] = struct{}{}
+	cfg.Runners = append(cfg.Runners, deprovisioner)
+	return nil
 }
 
 func (cfg *Config) readDeploymentClientV2(blob []byte) error {
@@ -181,7 +204,11 @@ func (cfg *Config) readDeploymentClientV2(blob []byte) error {
 			d.Name)
 	}
 	cfg.dNames[d.Name] = struct{}{}
-	cfg.Accessors = append(cfg.Accessors, connection.Accessor(d))
+	cfg.Runners = append(cfg.Runners, runner.Runner{
+		Target: runner.Accessor(d),
+		Action: runner.ActionLookup,
+		Run:    runner.Lookup,
+	})
 	return nil
 }
 
@@ -207,21 +234,23 @@ func (cfg *Config) readConfigV1(blob []byte) error {
 	)
 	if err = yaml.Unmarshal(blob, &d); err != nil {
 		return err
-	} else if d, err = validateV1(d, string(blob)); err != nil {
+	}
+	deploymentRunner, err := validateV1(d, string(blob))
+	if err != nil {
 		return err
 	}
 
-	deployment := connection.Deployment(d)
+	deployment := deploymentRunner.Target.(connection.Deployment)
 	if filtered(deployment) {
 		return nil
 	}
 
-	if _, ok := cfg.dNames[d.Name]; ok {
+	if _, ok := cfg.dNames[deployment.GetName()]; ok {
 		return fmt.Errorf("Deployment names must be unique, but '%s' is specified more than once",
-			d.Name)
+			deployment.GetName())
 	}
-	cfg.dNames[d.Name] = struct{}{}
-	cfg.Accessors = append(cfg.Accessors, deployment.(connection.Accessor))
+	cfg.dNames[deployment.GetName()] = struct{}{}
+	cfg.Runners = append(cfg.Runners, deploymentRunner)
 
 	return nil
 }

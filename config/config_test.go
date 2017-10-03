@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	cxn "github.com/benjdewan/pachelbel/connection"
+	"github.com/benjdewan/pachelbel/connection"
 )
 
 func TestSplitYAMLObjects(t *testing.T) {
@@ -30,7 +30,7 @@ func TestFiltered(t *testing.T) {
 	setValidGlobals()
 	for i, test := range filteredTests {
 		clusterFilter = test.clusterFilter
-		actual := filtered(cxn.Deployment(test.deployment))
+		actual := filtered(connection.Deployment(test.deployment))
 		if actual != test.expected {
 			t.Errorf("Test #%d: With filter: %v\nDeployment: %v\nExpected '%v' but saw '%v'",
 				i, clusterFilter, test.deployment, test.expected,
@@ -402,5 +402,28 @@ name: foo`,
 object_type: deployment_client
 type: redis`,
 		valid: false,
+	},
+	{
+		config: `config_version: 2
+object_type: deprovision
+name: existing-redis`,
+		valid: true,
+	},
+	{
+		config: `config_version: 2
+object_type: deprovision
+id: 1234567890987654321`,
+		valid: true,
+	},
+	{
+		config: `config_version: 2
+object_type: deprovision`,
+		valid: false,
+	},
+	{
+		config: `config_version: 2
+object_type: deprovision
+name: ignored-when-no-existing-deployment-matches`,
+		valid: true,
 	},
 }

@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
-	"github.com/benjdewan/pachelbel/connection"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -13,40 +14,48 @@ import (
 var deprovisionCmd = &cobra.Command{
 	Use:   "deprovision",
 	Short: "Idempotent deprovisioner of compose deployments",
-	Long: `pachelbel deprovision reads a mixed list of deployment names and/or IDs as
-argumentsr For each deployment pachelbel will, by default, and then makes
-deprovisioning requests to the Compose API. If a specified deployment does not
-exist or has already been deleted, it is skipped.`,
+	Long: `pachelbel deprovision reads a list of deployment names as
+arguments. For each deployment pachelbel will, check if the deployment exists,
+and if it does sends a deprovisioning request to the Compose API. If a
+specified deployment does not exist or has already been deleted it is ignored.`,
 	Run: runDeprovision,
 }
 
 func runDeprovision(cmd *cobra.Command, args []string) {
 	assertCanDeprovision(args)
-	cxn, err := connection.New(viper.GetString("log-file"),
-		viper.GetBool("dry-run"))
+	file, err := writeDeprovisionFile(args)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	if err := cxn.Init(viper.GetString("api-key")); err != nil {
+	provisionCmd.Run(cmd, []string{file})
+	if err = os.Remove(file); err != nil {
 		log.Fatal(err)
 	}
-	defer func() {
-		if closeErr := cxn.Close(); closeErr != nil {
-			panic(closeErr)
-		}
-	}()
-	deprovision(cxn, args)
 }
 
-func deprovision(cxn *connection.Connection, deployments []string) {
-	timeout := float64(viper.GetInt("timeout"))
+const deprovisionTemplate = `config_version: 2
+object_type: deprovision
+name: %s
+timeout: %d`
+
+func writeDeprovisionFile(args []string) (string, error) {
+	timeout := viper.GetInt("timeout")
 	if !viper.GetBool("wait") {
 		timeout = 0
 	}
-	if err := cxn.Deprovision(deployments, timeout); err != nil {
-		log.Fatal(err)
+	objs := []string{}
+	for _, arg := range args {
+		objs = append(objs, fmt.Sprintf(deprovisionTemplate, arg, timeout))
 	}
+	handle, err := ioutil.TempFile("", "deprovision")
+	if err != nil {
+		return "", err
+	}
+	_, err = handle.WriteString(strings.Join(objs, "\n---\n"))
+	if err != nil {
+		return "", err
+	}
+	return handle.Name(), handle.Close()
 }
 
 func init() {

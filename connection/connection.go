@@ -4,31 +4,21 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"time"
 
 	compose "github.com/benjdewan/gocomposeapi"
 	"github.com/benjdewan/pachelbel/output"
-	"github.com/benjdewan/pachelbel/progress"
 	"github.com/golang-collections/go-datastructures/queue"
+	"github.com/masterminds/semver"
 )
 
-// Accessor is the interface for any Compose Deployment information request.
-// To make any deployment mutations (creating new deployments or updating
-// existing ones), the provided object must also implement the Deployment
-// interface.
-type Accessor interface {
-	IsOwner() bool
-	IsDeleter() bool
-	GetName() string
-	GetType() string
-}
-
-// Deprovision is the interface for deployment deprovision objects. To not wait
-// for the deprovision recipe to complete for the given ID, ensure GetTimeout()
-// returns 0
-type Deprovision interface {
-	GetID() string
-	GetTimeout() float64
+type ExistingDeployment struct {
+	Scaling  int
+	Notes    string
+	Name     string
+	ID       string
+	Type     string
+	Version  string
+	Upgrades []*semver.Version
 }
 
 // Deployment is the interface for mutatable Compose deployments. For any
@@ -37,6 +27,7 @@ type Deprovision interface {
 type Deployment interface {
 	ClusterDeployment() bool
 	TagDeployment() bool
+	GetID() string
 	GetCluster() string
 	GetTags() []string
 	GetDatacenter() string
@@ -49,9 +40,17 @@ type Deployment interface {
 	GetTimeout() float64
 	GetType() string
 	GetVersion() string
-	GetVersionConstraint() string
 	GetWiredTiger() bool
 	GetCacheMode() bool
+}
+
+// Deprovision is the interface for deployment deprovision objects. To not wait
+// for the deprovision recipe to complete for the given ID, ensure GetTimeout()
+// returns 0
+type Deprovision interface {
+	GetID() string
+	GetName() string
+	GetTimeout() float64
 }
 
 // Connection is the struct that manages the state of provisioning
@@ -59,45 +58,85 @@ type Deployment interface {
 // codebeat:disable[TOO_MANY_IVARS]
 type Connection struct {
 	// Internal fields
-	client            *compose.Client
-	logFile           *os.File
-	dryRun            bool
-	accountID         string
-	deploymentsByName *sync.Map
-	newDeploymentIDs  *sync.Map
-	pb                *progress.ProgressBars
+	client           *compose.Client
+	logFile          *os.File
+	accountID        string
+	newDeploymentIDs *sync.Map
 }
 
 // codebeat:enable[TOO_MANY_IVARS]
 
 // New creates a new Connection struct, but does not initialize the Compose
 // connection. Invoke Init() to do so.
-func New(logFile string, dryRun bool) (*Connection, error) {
-	cxn := &Connection{
-		newDeploymentIDs:  &sync.Map{},
-		deploymentsByName: &sync.Map{},
-		pb:                progress.New(),
-		dryRun:            dryRun,
-	}
-	cxn.pb.RefreshRate = 3 * time.Second
+func New(apiKey, logFile string) (*Connection, error) {
+	cxn := &Connection{newDeploymentIDs: &sync.Map{}}
 	var err error
 	if len(logFile) > 0 {
-		cxn.logFile, err = os.Create(logFile)
+		if cxn.logFile, err = os.Create(logFile); err != nil {
+			return cxn, err
+		}
 	}
-	return cxn, err
-}
-
-// Init will establish the connection to Compose for the given Connection object
-// and populate it with current information of existing deployments and clusters
-func (cxn *Connection) Init(apiKey string) error {
-	var err error
 	cxn.client, err = createClient(apiKey, cxn.logFile)
 	if err != nil {
-		return err
+		return cxn, err
 	}
 
 	cxn.accountID, err = fetchAccountID(cxn.client)
-	return err
+	return cxn, err
+}
+
+// AddTeams adds teams to the deployment specified by the ID with the roles provided
+func (cxn *Connection) AddTeams(id string, deployment Deployment) error {
+	teamRoles := deployment.GetTeamRoles()
+	existingRoles, errs := cxn.client.GetTeamRoles(id)
+	if len(errs) != 0 {
+		return fmt.Errorf("Unable to retrieve team_role information for '%s':\n%v\n",
+			deployment.GetName(), errs)
+	}
+	if len(teamRoles) == 0 {
+		return nil
+	}
+
+	for role, teams := range teamRoles {
+		existingTeams := []compose.Team{}
+		for _, existingTeamRoles := range *existingRoles {
+			if existingTeamRoles.Name == role {
+				existingTeams = existingTeamRoles.Teams
+				break
+			}
+		}
+
+		for _, teamID := range filterTeams(teams, existingTeams) {
+			params := compose.TeamRoleParams{
+				Name:   role,
+				TeamID: teamID,
+			}
+
+			_, createErrs := cxn.client.CreateTeamRole(id, params)
+			if createErrs != nil {
+				return fmt.Errorf("Unable to add team '%s' as '%s' to %s:\n%v\n",
+					teamID, role, deployment.GetName(),
+					createErrs)
+			}
+		}
+	}
+	return nil
+}
+
+// Add a deployment ID to a connection object's internal deployment tracker
+func (cxn *Connection) Add(id string) {
+	cxn.newDeploymentIDs.Store(id, struct{}{})
+}
+
+// GetAndAdd retrieves the latest deployment information about the named
+// deployment and stores its ID
+func (cxn *Connection) GetAndAdd(name string) error {
+	deployment, errs := cxn.client.GetDeploymentByName(name)
+	if len(errs) != 0 {
+		return fmt.Errorf("Unable to get the latest details of '%s':\n%v", name, errs)
+	}
+	cxn.newDeploymentIDs.Store(deployment.ID, struct{}{})
+	return nil
 }
 
 // Clusters returns a map of cluster IDs by name and ID.
@@ -123,8 +162,7 @@ func (cxn *Connection) Datacenters() (map[string]struct{}, error) {
 
 	datacenterObjs, errs := cxn.client.GetDatacenters()
 	if len(errs) != 0 || datacenterObjs == nil {
-		return datacenters, fmt.Errorf("Failed to get datacenter information:\n%s",
-			errsOut(errs))
+		return datacenters, fmt.Errorf("Failed to get datacenter information:\n%v", errs)
 	}
 
 	for _, datacenter := range *datacenterObjs {
@@ -145,59 +183,16 @@ func (cxn *Connection) SupportedDatabases() (map[string][]string, error) {
 	return buildDatabaseVersionMap(*dbs), nil
 }
 
-func buildDatabaseVersionMap(dbs []compose.Database) map[string][]string {
-	databases := make(map[string][]string)
-	for _, db := range dbs {
-		databases[db.DatabaseType] = buildDatabaseVersionSlice(db.Embedded.Versions)
+func (cxn *Connection) ExistingDeployment(idOrName string) (ExistingDeployment, error) {
+	deployment, errs := cxn.client.GetDeployment(idOrName)
+	if len(errs) == 0 && deployment != nil {
+		return cxn.existingDeployment(*deployment)
 	}
-	return databases
-}
-
-func buildDatabaseVersionSlice(vs []compose.Version) []string {
-	versions := []string{}
-	for _, v := range vs {
-		versions = append(versions, v.Version)
+	deployment, errs = cxn.client.GetDeploymentByName(idOrName)
+	if len(errs) == 0 && deployment != nil {
+		return cxn.existingDeployment(*deployment)
 	}
-	return versions
-}
-
-// Process reads through the provided slice of Accessors, creates or edits
-// deployments where necessary or looks up existing deployments depending on
-// whether a provided Accessor is an owner or not
-func (cxn *Connection) Process(accessors []Accessor) error {
-	runners := cxn.newRunners(accessors)
-
-	var wg sync.WaitGroup
-	wg.Add(len(runners))
-
-	q := queue.New(0)
-	cxn.pb.Start()
-	for _, runner := range runners {
-		go func(r cxnRunner) {
-			if err := r.run(cxn, r.accessor); err != nil {
-				cxn.pb.Error(r.accessor.GetName())
-				enqueue(q, err)
-			} else {
-				cxn.pb.Done(r.accessor.GetName())
-			}
-			wg.Done()
-		}(runner)
-	}
-	wg.Wait()
-	cxn.pb.Stop()
-	return flushErrors(q)
-}
-
-// Deprovision takes a slice of deployment names and IDs to deprovision,
-// resolves the ID (if necessay), and fires off DELETE API requests. If
-// the 'wait' parameter is true Deprovision waits on the deprovision
-// recipes to complete. Otherwise Deprovision returns fast
-func (cxn *Connection) Deprovision(deployments []string, timeout float64) error {
-	accessors := resolveDeprovisionObjects(cxn.client, deployments, timeout)
-	if len(accessors) == 0 {
-		return nil
-	}
-	return cxn.Process(accessors)
+	return ExistingDeployment{}, fmt.Errorf("Unable to resolve '%s' as a deployment id or name:\n%v", idOrName, errs)
 }
 
 // ConnectionYAML writes out the connection strings for all the
@@ -217,17 +212,6 @@ func (cxn *Connection) ConnectionYAML(endpointMap map[string]string, outFile str
 		enqueue(q, err)
 	}
 	return flushErrors(q)
-}
-
-func (cxn *Connection) addToBuilder(id string, b *output.Builder) error {
-	if output.IsFake(id) {
-		return b.AddFake(id)
-	}
-	deployment, errs := cxn.client.GetDeployment(id)
-	if len(errs) != 0 {
-		return fmt.Errorf("Unable to get deployment information for '%s':\n%v", id, errs)
-	}
-	return b.Add(deployment)
 }
 
 // Close closes any open connections and/or files possessed by the Connection

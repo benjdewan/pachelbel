@@ -1,90 +1,17 @@
 package connection
 
-import (
-	"fmt"
+import "fmt"
 
-	compose "github.com/benjdewan/gocomposeapi"
-)
-
-func dryRunDeprovision(cxn *Connection, accessor Accessor) error {
-	return nil
-}
-
-func deprovision(cxn *Connection, accessor Accessor) error {
-	deployment := accessor.(Deprovision)
-
-	recipe, errs := cxn.client.DeprovisionDeployment(deployment.GetID())
+func (cxn *Connection) Deprovision(deprovision Deprovision) error {
+	recipe, errs := cxn.client.DeprovisionDeployment(deprovision.GetID())
 	if len(errs) != 0 {
 		return fmt.Errorf("Unable to deprovision '%s':\n%v",
-			accessor.GetName(), errs)
+			deprovision.GetName(), errs)
 	}
 
-	if deployment.GetTimeout() == 0 {
+	if deprovision.GetTimeout() == 0 {
 		return nil
 	}
 
-	return cxn.waitOnRecipe(recipe.ID, deployment.GetTimeout())
-}
-
-type deprovisionObject struct {
-	name           string
-	id             string
-	deploymentType string
-	timeout        float64
-}
-
-func (d deprovisionObject) IsOwner() bool {
-	return true
-}
-
-func (d deprovisionObject) IsDeleter() bool {
-	return true
-}
-
-func (d deprovisionObject) GetName() string {
-	return d.name
-}
-
-func (d deprovisionObject) GetTimeout() float64 {
-	return d.timeout
-}
-
-func (d deprovisionObject) GetType() string {
-	return d.deploymentType
-}
-
-func (d deprovisionObject) GetID() string {
-	return d.id
-}
-
-func resolveDeprovisionObjects(client *compose.Client, idsAndNames []string, timeout float64) []Accessor {
-	objs := []Accessor{}
-	for _, idOrName := range idsAndNames {
-		if obj := resolveId(client, idOrName, timeout); obj != nil {
-			objs = append(objs, Accessor(*obj))
-		}
-	}
-	return objs
-}
-
-func resolveId(client *compose.Client, idOrName string, timeout float64) *deprovisionObject {
-	deployment, _ := client.GetDeployment(idOrName)
-	if deployment != nil {
-		return &deprovisionObject{
-			name:           deployment.Name,
-			id:             deployment.ID,
-			deploymentType: deployment.Type,
-			timeout:        timeout,
-		}
-	}
-	deployment, _ = client.GetDeploymentByName(idOrName)
-	if deployment != nil {
-		return &deprovisionObject{
-			name:           deployment.Name,
-			id:             deployment.ID,
-			deploymentType: deployment.Type,
-			timeout:        timeout,
-		}
-	}
-	return nil
+	return cxn.wait(recipe.ID, deprovision.GetTimeout())
 }

@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/benjdewan/pachelbel/config"
 	"github.com/benjdewan/pachelbel/connection"
+	"github.com/benjdewan/pachelbel/runner"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -25,13 +27,9 @@ configuration no actions are taken.`,
 func runProvision(cmd *cobra.Command, args []string) {
 	assertCanStart(args)
 
-	cxn, err := connection.New(viper.GetString("log-file"),
-		viper.GetBool("dry-run"))
+	cxn, err := connection.New(viper.GetString("api-key"),
+		viper.GetString("log-file"))
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err = cxn.Init(viper.GetString("api-key")); err != nil {
 		log.Fatal(err)
 	}
 	defer func() {
@@ -43,17 +41,17 @@ func runProvision(cmd *cobra.Command, args []string) {
 	cfg, err := readConfigs(cxn, args)
 	if err != nil {
 		log.Fatal(err)
+	} else if len(cfg.Runners) == 0 {
+		fmt.Println("Nothing to do")
+		return
 	}
 
-	process(cxn, cfg.Accessors)
-
-	writeOutput(cxn, cfg.EndpointMap)
-}
-
-func process(cxn *connection.Connection, accessors []connection.Accessor) {
-	if err := cxn.Process(accessors); err != nil {
+	ctl := runner.NewController(cxn, viper.GetBool("dry-run"))
+	if err := ctl.Run(cfg.Runners); err != nil {
 		log.Fatal(err)
 	}
+
+	writeOutput(cxn, cfg.EndpointMap)
 }
 
 func writeOutput(cxn *connection.Connection, endpointMap map[string]string) {
@@ -67,18 +65,21 @@ func readConfigs(cxn *connection.Connection, paths []string) (*config.Config, er
 	var err error
 	config.Databases, err = cxn.SupportedDatabases()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	config.Clusters, err = cxn.Clusters()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	config.Datacenters, err = cxn.Datacenters()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
+
+	config.CXN = cxn
+
 	config.BuildClusterFilter(viper.GetStringSlice("cluster"))
 	config.BuildDatacenterFilter(viper.GetStringSlice("datacenter"))
 

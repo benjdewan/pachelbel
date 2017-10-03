@@ -1,6 +1,10 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/benjdewan/pachelbel/connection"
+)
 
 var validRoles = map[string]struct{}{
 	"admin":     {},
@@ -18,7 +22,17 @@ var (
 	// Datacenters is a map of names to validate that the datacenter slugs a user
 	// specifies exist
 	Datacenters map[string]struct{}
+	// CXN is a connection object for retrieving existing deployment information
+	CXN *connection.Connection
 )
+
+func existingDeployment(idOrName string) (connection.ExistingDeployment, bool) {
+	if CXN == nil {
+		return connection.ExistingDeployment{}, false
+	}
+	d, err := CXN.ExistingDeployment(idOrName)
+	return d, err == nil
+}
 
 func validateType(deploymentType string) []string {
 	if _, ok := Databases[deploymentType]; !ok {

@@ -20,28 +20,20 @@ type deploymentV1 struct {
 	Timeout       *int        `json:"timeout,omitempty"`
 
 	//internal
-	resolvedVersion string
+	id string
 }
 
 // codebeat:enable[TOO_MANY_IVARS]
+
+func (d deploymentV1) GetID() string {
+	return d.id
+}
 
 // TeamV1 is the structure corresponding to version 1 of pachelbel's team_roles
 // configuration YAML
 type TeamV1 struct {
 	ID   string `json:"id"`
 	Role string `json:"role"`
-}
-
-// IsOwner will always return true because a deployment object is for
-// creating/editing a deployment owned by the config provider
-func (d deploymentV1) IsOwner() bool {
-	return true
-}
-
-// IsDeleter will always return false because a deployment object is for
-// creating/editing a deployment, not removing it
-func (d deploymentV1) IsDeleter() bool {
-	return false
 }
 
 // GetName returns the name of the deployment
@@ -89,10 +81,6 @@ func (d deploymentV1) GetDatacenter() string {
 
 // GetVersion returns the database version the deployment should be deploying
 func (d deploymentV1) GetVersion() string {
-	return d.resolvedVersion
-}
-
-func (d deploymentV1) GetVersionConstraint() string {
 	return d.Version
 }
 

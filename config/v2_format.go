@@ -4,21 +4,37 @@ type endpointMapV2 struct {
 	EndpointMap map[string]string `json:"endpoint_map"`
 }
 
+type deprovisionObjectV2 struct {
+	Name    string `json:"name"`
+	ID      string `json:"id"`
+	Timeout *int   `json:"timeout"`
+
+	//internal fields
+	dType string
+}
+
+func (d deprovisionObjectV2) GetName() string {
+	return d.Name
+}
+
+func (d deprovisionObjectV2) GetTimeout() float64 {
+	if d.Timeout == nil {
+		return float64(300)
+	}
+	return float64(*d.Timeout)
+}
+
+func (d deprovisionObjectV2) GetType() string {
+	return d.dType
+}
+
+func (d deprovisionObjectV2) GetID() string {
+	return d.ID
+}
+
 type deploymentClientV2 struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
-}
-
-// IsDeleter will always return false because a deployment_client object does
-// not have permission to modify deployments let alone delete them
-func (d deploymentClientV2) IsDeleter() bool {
-	return false
-}
-
-// IsOwner will always return false because a deployment_client object
-// does not have permission to make changes to an existing deployment
-func (d deploymentClientV2) IsOwner() bool {
-	return false
 }
 
 // GetName returns the name of the deployment this object is a client of
