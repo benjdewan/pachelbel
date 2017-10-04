@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	compose "github.com/benjdewan/gocomposeapi"
+	"github.com/benjdewan/pachelbel/errorqueue"
 	"github.com/benjdewan/pachelbel/output"
-	"github.com/golang-collections/go-datastructures/queue"
 	"github.com/masterminds/semver"
 )
 
@@ -203,20 +203,20 @@ func (cxn *Connection) ExistingDeployment(idOrName string) (ExistingDeployment, 
 // ConnectionYAML writes out the connection strings for all the
 // provisioned deployments as a YAML object to the provided file.
 func (cxn *Connection) ConnectionYAML(endpointMap map[string]string, outFile string) error {
-	q := queue.New(0)
+	q := errorqueue.New()
 	builder := output.New(endpointMap)
 	cxn.newDeploymentIDs.Range(func(key, value interface{}) bool {
 		if err := cxn.addToBuilder(key.(string), builder); err != nil {
-			enqueue(q, err)
+			q.Enqueue(err)
 			return false
 		}
 		return true
 	})
 
 	if err := builder.Write(outFile); err != nil {
-		enqueue(q, err)
+		q.Enqueue(err)
 	}
-	return flushErrors(q)
+	return q.Flush()
 }
 
 // Close closes any open connections and/or files possessed by the Connection

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/benjdewan/pachelbel/connection"
+	"github.com/benjdewan/pachelbel/errorqueue"
 	progressbars "github.com/benjdewan/pachelbel/progress"
-	"github.com/golang-collections/go-datastructures/queue"
 )
 
 // Accessor is the interface for any Compose Deployment information request.
@@ -45,14 +45,14 @@ func (ctl *Controller) Run(runners []Runner) error {
 
 	var wg sync.WaitGroup
 	wg.Add(len(runners))
-	q := queue.New(0)
+	q := errorqueue.New()
 	ctl.progress.Start()
 
 	for _, runner := range runners {
 		go func(r Runner) {
 			if err := r.Run(ctl.cxn, r.Target); err != nil {
 				ctl.progress.Error(r.Target.GetName())
-				enqueue(q, err)
+				q.Enqueue(err)
 			} else {
 				ctl.progress.Done(r.Target.GetName())
 			}
@@ -61,7 +61,7 @@ func (ctl *Controller) Run(runners []Runner) error {
 	}
 	wg.Wait()
 	ctl.progress.Stop()
-	return flushErrors(q)
+	return q.Flush()
 }
 
 func (ctl *Controller) register(runners []Runner) []Runner {
@@ -73,30 +73,4 @@ func (ctl *Controller) register(runners []Runner) []Runner {
 		ctl.progress.AddBar(runners[i].Action, runners[i].Target.GetName())
 	}
 	return runners
-}
-
-func enqueue(q *queue.Queue, items ...interface{}) {
-	for _, item := range items {
-		if err := q.Put(item); err != nil {
-			// This only happens if we are using a Queue after Dispose()
-			// has been called on it.
-			panic(err)
-		}
-	}
-}
-
-func flushErrors(q *queue.Queue) error {
-	if q.Empty() {
-		q.Dispose()
-		return nil
-	}
-	length := q.Len()
-	items, qErr := q.Get(length)
-	if qErr != nil {
-		// Get() only returns an error if Dispose() has already
-		// been called on the queue.
-		panic(qErr)
-	}
-	q.Dispose()
-	return fmt.Errorf("%d fatal error(s) occurred:\n%v", length, items)
 }

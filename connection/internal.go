@@ -8,7 +8,6 @@ import (
 
 	compose "github.com/benjdewan/gocomposeapi"
 	"github.com/benjdewan/pachelbel/output"
-	"github.com/golang-collections/go-datastructures/queue"
 	"github.com/masterminds/semver"
 )
 
@@ -130,30 +129,4 @@ func createClient(apiKey string, w io.Writer) (*compose.Client, error) {
 		panic(err)
 	}
 	return client.SetLogger(true, w), nil
-}
-
-func enqueue(q *queue.Queue, items ...interface{}) {
-	for _, item := range items {
-		if err := q.Put(item); err != nil {
-			// This only happens if we are using a Queue after Dispose()
-			// has been called on it.
-			panic(err)
-		}
-	}
-}
-
-func flushErrors(q *queue.Queue) error {
-	if q.Empty() {
-		q.Dispose()
-		return nil
-	}
-	length := q.Len()
-	items, qErr := q.Get(length)
-	if qErr != nil {
-		// Get() only returns an error if Dispose() has already
-		// been called on the queue.
-		panic(qErr)
-	}
-	q.Dispose()
-	return fmt.Errorf("%d fatal error(s) occurred:\n%v", length, items)
 }
