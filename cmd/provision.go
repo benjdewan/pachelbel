@@ -46,8 +46,9 @@ func runProvision(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ctl := runner.NewController(cxn, viper.GetBool("dry-run"))
-	if err := ctl.Run(cfg.Runners); err != nil {
+	if err := runner.
+		NewController(cxn, viper.GetBool("dry-run")).
+		Run(cfg.Runners); err != nil {
 		log.Fatal(err)
 	}
 
