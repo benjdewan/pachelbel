@@ -27,6 +27,7 @@ type Controller struct {
 	dryRun   bool
 }
 
+// NewController creates a new Controller object
 func NewController(cxn *connection.Connection, dryRun bool) *Controller {
 	ctl := &Controller{
 		cxn:      cxn,
@@ -38,7 +39,7 @@ func NewController(cxn *connection.Connection, dryRun bool) *Controller {
 }
 
 // Run processes a slice of Runners. Doing what ever action has been set as
-// ther 'run' function in parallel.
+// their 'run' function in parallel.
 func (ctl *Controller) Run(runners []Runner) error {
 	runners = ctl.register(runners)
 

@@ -11,6 +11,9 @@ import (
 	"github.com/masterminds/semver"
 )
 
+// ExistingDeployment is a struct containing all the information about
+// an existing deployment to determine if any updates can be made to it
+// or not.
 type ExistingDeployment struct {
 	Scaling  int
 	Notes    string
@@ -183,6 +186,8 @@ func (cxn *Connection) SupportedDatabases() (map[string][]string, error) {
 	return buildDatabaseVersionMap(*dbs), nil
 }
 
+// ExistingDeployment returns an ExistingDeployment struct if the provided
+// input is the ID or Name of a deployment (ID is weighted above Name).
 func (cxn *Connection) ExistingDeployment(idOrName string) (ExistingDeployment, error) {
 	deployment, errs := cxn.client.GetDeployment(idOrName)
 	if len(errs) == 0 && deployment != nil {
