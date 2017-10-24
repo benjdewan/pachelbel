@@ -19,7 +19,7 @@ func (d deprovisionObjectV2) GetName() string {
 
 func (d deprovisionObjectV2) GetTimeout() float64 {
 	if d.Timeout == nil {
-		return float64(300)
+		return float64(900)
 	}
 	return float64(*d.Timeout)
 }

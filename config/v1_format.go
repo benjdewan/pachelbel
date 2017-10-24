@@ -94,10 +94,10 @@ func (d deploymentV1) GetScaling() int {
 }
 
 // GetTimeout returns the maximum timeout in seconds to wait on recipes for
-// this deployment. The default is 300 seconds
+// this deployment. The default is 900 seconds
 func (d deploymentV1) GetTimeout() float64 {
 	if d.Timeout == nil {
-		return float64(300)
+		return float64(900)
 	}
 	return float64(*d.Timeout)
 }
