@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/benjdewan/gocomposeapi"
   packages = ["."]
-  revision = "83d081468fc698f6922b59ceb835240019936f92"
+  revision = "5b1942ca5da055630d769887062653e14126bb87"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
