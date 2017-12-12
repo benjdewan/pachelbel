@@ -36,7 +36,7 @@ pachelbel-%: $(SOURCE)
 	GOOS=$* go build -ldflags $(LDFLAGS) -o "$@"
 
 lint:
-	$(GOMETALINTER) --deadline=90s cmd/ connection/ config/ progress/ output/ main.go
+	$(GOMETALINTER) --disable=gas --deadline=90s cmd/ connection/ config/ progress/ output/ main.go
 .PHONY: lint
 
 test:
