@@ -231,6 +231,26 @@ var configValidateV1Tests = []struct {
 	{
 		config: deploymentV1{
 			ConfigVersion: 1,
+			Type:          "redis",
+			Name:          "names-are-not-validated",
+			Datacenter:    "aws:us-east-1",
+			Upgradeable:   true,
+		},
+		valid: true,
+	},
+	{
+		config: deploymentV1{
+			ConfigVersion: 1,
+			Type:          "redis",
+			Name:          "names-are-not-validated",
+			Datacenter:    "aws:us-east-1",
+			Upgradeable:   false,
+		},
+		valid: true,
+	},
+	{
+		config: deploymentV1{
+			ConfigVersion: 1,
 			Type:          "mongodb",
 			Name:          "names-are-not-validated",
 			Datacenter:    "softlayer:dallas-1",

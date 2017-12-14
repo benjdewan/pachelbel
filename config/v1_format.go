@@ -18,6 +18,7 @@ type deploymentV1 struct {
 	WiredTiger    bool        `json:"wired_tiger"`
 	CacheMode     bool        `json:"cache_mode"`
 	Timeout       *int        `json:"timeout,omitempty"`
+	Upgradeable   bool        `json:"upgradeable,omitempty"`
 
 	//internal
 	id string

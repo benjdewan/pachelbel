@@ -53,13 +53,20 @@ func validateExistingV1(d deploymentV1, existing connection.ExistingDeployment, 
 		actions = append(actions, runner.ActionResize)
 		errs = append(errs, validateScaling(d.Scaling)...)
 	}
+
 	if d.Version == existing.Version {
 		d.Version = ""
 	} else if versionEquivalence(d.Version, existing.Version) {
 		d.Version = ""
 	} else {
-		actions = append(actions, runner.ActionUpgrade)
-		errs = append(errs, validateVersionUpgradeV1(&d, existing.Upgrades)...)
+		vErrs := validateVersionUpgradeV1(&d, existing.Upgrades)
+		if len(vErrs) == 0 && !d.Upgradeable {
+			fmt.Printf("A version upgrade for '%s' exists: '%s'\n", d.Name, d.Version)
+			d.Version = ""
+		} else {
+			actions = append(actions, runner.ActionUpgrade)
+		}
+		errs = append(errs, vErrs...)
 	}
 
 	if d.Notes == existing.Notes {

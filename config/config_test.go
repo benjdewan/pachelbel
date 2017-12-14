@@ -270,6 +270,26 @@ config_version: 1
 type: postgresql
 name: names-are-not-validated
 datacenter: aws:us-east-1
+version: "*"
+upgradeable: true`,
+		valid: true,
+	},
+	{
+		config: `---
+config_version: 1
+type: postgresql
+name: names-are-not-validated
+datacenter: aws:us-east-1
+version: "*"
+upgradeable: false`,
+		valid: true,
+	},
+	{
+		config: `---
+config_version: 1
+type: postgresql
+name: names-are-not-validated
+datacenter: aws:us-east-1
 version: 10.0`,
 		valid: false,
 	},
