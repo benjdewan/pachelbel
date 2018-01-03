@@ -13,10 +13,11 @@ import (
 )
 
 type outputYAML struct {
-	Type        string           `json:"type"`
-	CACert      string           `json:"cacert,omitempty"`
-	Version     string           `json:"version"`
-	Connections []connectionYAML `json:"connections"`
+	Type                string            `json:"type"`
+	CACert              string            `json:"cacert,omitempty"`
+	Version             string            `json:"version"`
+	Connections         []connectionYAML  `json:"connections"`
+	AddressTranslations map[string]string `json:"address_translations,omitempty"`
 }
 
 // codebeat:disable[TOO_MANY_IVARS]
@@ -80,10 +81,17 @@ func (b *Builder) convert(deployment *compose.Deployment) ([]byte, error) {
 
 	outYAML := make(map[string]outputYAML)
 	outYAML[deployment.Name] = outputYAML{
-		Type:        deployment.Type,
-		CACert:      deployment.CACertificateBase64,
-		Version:     deployment.Version,
-		Connections: connections,
+		Type:                deployment.Type,
+		CACert:              deployment.CACertificateBase64,
+		Version:             deployment.Version,
+		Connections:         connections,
+		AddressTranslations: make(map[string]string),
+	}
+
+	for _, mapping := range deployment.Connection.Maps {
+		for key, val := range mapping {
+			outYAML[deployment.Name].AddressTranslations[key] = val
+		}
 	}
 	return yaml.Marshal(outYAML)
 }

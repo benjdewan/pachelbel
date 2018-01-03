@@ -10,6 +10,8 @@ on disk.
 The output schema is a single yaml map of deployment name to deployment connection information with this format:
 ```yaml
 <deployment_name>:
+  address_translations:
+    {{.internal_ip}}:{{.internal_port}}: {{.external_url}}:{{.external_port}}
   cacert: {{.base64_encoded_ca_bundle}}
   connections:
   - host:     {{.host}}
