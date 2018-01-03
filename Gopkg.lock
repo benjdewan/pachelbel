@@ -40,8 +40,8 @@
 [[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
-  revision = "be5ece7dd465ab0765a9682137865547526d1dfb"
-  version = "v1.7.3"
+  revision = "d419a98cdbed11a922bf76f257b7c4be79b50e73"
+  version = "v1.7.4"
 
 [[projects]]
   name = "github.com/masterminds/semver"
@@ -82,8 +82,8 @@
 [[projects]]
   name = "github.com/spf13/afero"
   packages = [".","mem"]
-  revision = "8d919cbe7e2627e417f3e45c3c0e489a5b7e2536"
-  version = "v1.0.0"
+  revision = "ec3a3111d1e1bdff38a61e09d5a5f5e974905611"
+  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/spf13/cast"
@@ -95,7 +95,7 @@
   branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "ccaecb155a2177302cb56cae929251a256d0f646"
+  revision = "b95ab734e27d33e0d8fbabf71ca990568d4e2020"
 
 [[projects]]
   branch = "master"
@@ -125,19 +125,19 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "53aa286056ef226755cd898109dbcdaba8ac0b81"
+  revision = "83801418e1b59fb1880e363299581ee543af32ca"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
-  revision = "3b24cac7bc3a458991ab409aa2a339ac9e0d60d6"
+  revision = "e19ae1496984b1c655b8044a65c0300a3c878dd3"
 
 [[projects]]
   branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "287cf08546ab5e7e37d55a84f7ed3fd1db036de5"
+  revision = "c95af922eae69f190717a0b7148960af8c55a072"
 
 [solve-meta]
   analyzer-name = "dep"
