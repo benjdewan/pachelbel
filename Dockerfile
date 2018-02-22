@@ -1,4 +1,4 @@
-FROM golang:1.9-alpine AS build
+FROM golang:1.10-alpine AS build
 
 RUN mkdir -p /go/src/github.com/benjdewan/pachelbel
 WORKDIR /go/src/github.com/benjdewan/pachelbel
