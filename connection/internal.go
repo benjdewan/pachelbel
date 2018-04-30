@@ -45,6 +45,7 @@ func (cxn *Connection) existingDeployment(deployment compose.Deployment) (Existi
 	}
 
 	existing.Scaling = scalings.AllocatedUnits
+	existing.UtilizedScaling = scalings.UsedUnits
 	return existing, nil
 }
 

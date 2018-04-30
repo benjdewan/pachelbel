@@ -42,17 +42,26 @@ func validateV1(d deploymentV1, input string) (runner.Runner, error) {
 		input, strings.Join(errs, "\n"))
 }
 
-func validateExistingV1(d deploymentV1, existing connection.ExistingDeployment, input string, errs []string) (runner.Runner, error) {
-	d.id = existing.ID
+func validateExistingScalingV1(d deploymentV1, existing connection.ExistingDeployment, errs []string) ([]string, []string) {
 	actions := []string{}
-
 	if d.Scaling == nil || *d.Scaling == existing.Scaling {
 		scaling := 0
 		d.Scaling = &scaling
+	} else if *d.Scaling < existing.UtilizedScaling {
+		errs = append(errs, fmt.Sprintf("Cannot downscale %s to %d units. %d many are currently in use",
+			d.Name, *d.Scaling, existing.UtilizedScaling))
 	} else {
 		actions = append(actions, runner.ActionResize)
 		errs = append(errs, validateScaling(d.Scaling)...)
 	}
+	return actions, errs
+}
+
+func validateExistingV1(d deploymentV1, existing connection.ExistingDeployment, input string, errs []string) (runner.Runner, error) {
+	d.id = existing.ID
+
+	actions, sErrs := validateExistingScalingV1(d, existing, errs)
+	errs = append(errs, sErrs...)
 
 	if d.Version == existing.Version {
 		d.Version = ""

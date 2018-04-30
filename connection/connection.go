@@ -15,13 +15,14 @@ import (
 // an existing deployment to determine if any updates can be made to it
 // or not.
 type ExistingDeployment struct {
-	Scaling  int
-	Notes    string
-	Name     string
-	ID       string
-	Type     string
-	Version  string
-	Upgrades []*semver.Version
+	Scaling         int
+	UtilizedScaling int
+	Notes           string
+	Name            string
+	ID              string
+	Type            string
+	Version         string
+	Upgrades        []*semver.Version
 }
 
 // Deployment is the interface for mutatable Compose deployments. For any
