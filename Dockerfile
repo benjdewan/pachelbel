@@ -8,11 +8,15 @@ RUN apk add --no-cache \
     make \
     git
 
-RUN make
+RUN make \
+ && rm -rf /app \
+ && mkdir -p /app/etc/ssl/certs \
+ && cp /go/src/github.com/benjdewan/pachelbel/pachelbel-linux /app/pachelbel \
+ && cp /etc/ssl/certs/ca-certificates.crt /app/etc/ssl/certs/
 
-FROM alpine:latest as pachelbel
-COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=build /go/src/github.com/benjdewan/pachelbel/pachelbel-linux /pachelbel
+FROM scratch AS pachelbel
+COPY --from=build /app /
+
 ENTRYPOINT [ "/pachelbel" ]
 CMD [ "--help" ]
 
