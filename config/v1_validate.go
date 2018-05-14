@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -48,8 +49,13 @@ func validateExistingScalingV1(d deploymentV1, existing connection.ExistingDeplo
 		scaling := 0
 		d.Scaling = &scaling
 	} else if *d.Scaling < existing.UtilizedScaling {
-		errs = append(errs, fmt.Sprintf("Cannot downscale %s to %d units. %d many are currently in use",
-			d.Name, *d.Scaling, existing.UtilizedScaling))
+		d.Scaling = &existing.UtilizedScaling
+		_, err := fmt.Fprintf(os.Stderr,
+			"WARNING: %s currently utilizes %d units, but only %d are specified. Ignoring specified units",
+			d.Name, existing.UtilizedScaling, *d.Scaling)
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("Internal error while rendering configuration: %v", err))
+		}
 	} else {
 		actions = append(actions, runner.ActionResize)
 		errs = append(errs, validateScaling(d.Scaling)...)
