@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/benjdewan/gocomposeapi"
   packages = ["."]
-  revision = "5cef2bc3326680dfe5ef8bfb3358b178b5e4db9a"
+  revision = "1b2cb87c2df1e8d2c05ca823c5505bf33d02f4e1"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -51,8 +51,8 @@
 [[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
-  revision = "c3beff4c2358b44d0493c7dda585e7db7ff28ae6"
-  version = "v1.7.6"
+  revision = "c2353362d570a7bfa228149c62842019201cfb71"
+  version = "v1.8.0"
 
 [[projects]]
   branch = "master"
@@ -64,7 +64,7 @@
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
-  revision = "00c29f56e2386353d58c599509e8dc3801b0d716"
+  revision = "bb74f1db0675b241733089d5a1faa5dd8b0ef57b"
 
 [[projects]]
   branch = "master"
@@ -106,10 +106,10 @@
   version = "v1.2.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
   revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
+  version = "v0.0.3"
 
 [[projects]]
   branch = "master"
@@ -136,13 +136,13 @@
     "idna",
     "publicsuffix"
   ]
-  revision = "5f9ae10d9af5b1c89ae6904293b14b064d4ada23"
+  revision = "9ef9f5bb98a1fdc41f8cf6c250a4404b4085e389"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "f67ecc163a74fbeea4cb1db0a101dcd07201464a"
+  revision = "04b83988a018ef3ebffe1485df79d6499b76a4b4"
 
 [[projects]]
   name = "golang.org/x/text"
