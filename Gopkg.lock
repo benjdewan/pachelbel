@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/benjdewan/gocomposeapi"
   packages = ["."]
-  revision = "1b2cb87c2df1e8d2c05ca823c5505bf33d02f4e1"
+  revision = "32b92234bf47478c72091f4667d9efcff4f38dda"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -136,13 +136,13 @@
     "idna",
     "publicsuffix"
   ]
-  revision = "9ef9f5bb98a1fdc41f8cf6c250a4404b4085e389"
+  revision = "dfa909b99c79129e1100513e5cd36307665e5723"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "04b83988a018ef3ebffe1485df79d6499b76a4b4"
+  revision = "d4cedef3467ee719ea35470faeefbc6d0fa18e4b"
 
 [[projects]]
   name = "golang.org/x/text"
