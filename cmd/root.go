@@ -63,14 +63,26 @@ func init() {
 		`Simulate a pachelbel command run without making any
 				 real changes.`)
 
-	viper.BindPFlag("dry-run", RootCmd.PersistentFlags().Lookup("dry-run"))
-	viper.BindPFlag("log-file", RootCmd.PersistentFlags().Lookup("log-file"))
-	viper.BindPFlag("api-key", RootCmd.PersistentFlags().Lookup("api-key"))
+	if err := viper.BindPFlag("dry-run", RootCmd.PersistentFlags().Lookup("dry-run")); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	if err := viper.BindPFlag("log-file", RootCmd.PersistentFlags().Lookup("log-file")); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	if err := viper.BindPFlag("api-key", RootCmd.PersistentFlags().Lookup("api-key")); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	viper.BindEnv("api-key", "COMPOSE_API_KEY")
+	if err := viper.BindEnv("api-key", "COMPOSE_API_KEY"); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	viper.AutomaticEnv() // read in environment variables that match
 }

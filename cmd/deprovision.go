@@ -62,13 +62,19 @@ func init() {
 	deprovisionCmd.Flags().BoolP("wait", "w", false,
 		`Wait for deprovisioning recipes to complete before
 			returning`)
-	viper.BindPFlag("wait", deprovisionCmd.Flags().Lookup("wait"))
+	if err := viper.BindPFlag("wait", deprovisionCmd.Flags().Lookup("wait")); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	deprovisionCmd.Flags().IntP("timeout", "t", 300,
 		`The amount of time to wait, in seconds, for
 			deprovisioning recipes to complete.
 
 			Ignored if '--wait' is not set`)
-	viper.BindPFlag("timeout", deprovisionCmd.Flags().Lookup("timeout"))
+	if err := viper.BindPFlag("timeout", deprovisionCmd.Flags().Lookup("timeout")); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	RootCmd.AddCommand(deprovisionCmd)
 }

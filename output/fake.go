@@ -90,6 +90,7 @@ func fakePath(deployType, deployName string) string {
 	}
 }
 
+// #nosec
 func fakeCA() string {
 	var buf bytes.Buffer
 	buf.WriteString("-----BEGIN CERTIFICATE-----\n")
@@ -100,7 +101,8 @@ func fakeCA() string {
 
 func fakeCABody() []byte {
 	data := make([]byte, 1024)
-	rand.Read(data)
+	// We do not care that math/rand is weak. This is dummy code
+	rand.Read(data) // #nosec
 	encData := []byte(base64.StdEncoding.EncodeToString(data))
 	for i := 64; i < len(encData); i += 65 {
 		encData = append(encData[:i], append([]byte("\n"), encData[i:]...)...)

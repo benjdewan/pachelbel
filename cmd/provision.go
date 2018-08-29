@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/benjdewan/pachelbel/config"
 	"github.com/benjdewan/pachelbel/connection"
@@ -109,7 +110,10 @@ func addClusterFlag() {
 
 				 This flag can be repeated to specify multiple
 				 clusters`)
-	viper.BindPFlag("cluster", provisionCmd.Flags().Lookup("cluster"))
+	if err := viper.BindPFlag("cluster", provisionCmd.Flags().Lookup("cluster")); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 func addDatacenterFlag() {
@@ -121,12 +125,18 @@ func addDatacenterFlag() {
 
 				 This flag can be repeated to specify multiple
 				 datacenters.`)
-	viper.BindPFlag("datacenter", provisionCmd.Flags().Lookup("datacenter"))
+	if err := viper.BindPFlag("datacenter", provisionCmd.Flags().Lookup("datacenter")); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 func addOutputFlag() {
 	provisionCmd.Flags().StringP("output", "o", "./connection-info.yml",
 		`The file to write connection string
 				 information to.`)
-	viper.BindPFlag("output", provisionCmd.Flags().Lookup("output"))
+	if err := viper.BindPFlag("output", provisionCmd.Flags().Lookup("output")); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }

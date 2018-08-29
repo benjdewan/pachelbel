@@ -110,7 +110,7 @@ func (cfg *Config) readDir(root string) error {
 // codebeat:enable[BLOCK_NESTING]
 
 func (cfg *Config) readFile(path string) error {
-	file, err := os.Open(path)
+	file, err := os.Open(path) // #nosec
 	if err != nil {
 		return err
 	}
