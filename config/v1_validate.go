@@ -45,11 +45,10 @@ func validateV1(d deploymentV1, input string) (runner.Runner, error) {
 
 func validateExistingScalingV1(d deploymentV1, existing connection.ExistingDeployment, errs []string) ([]string, []string) {
 	actions := []string{}
-	scaling := 0
 	if d.Scaling == nil || *d.Scaling == existing.Scaling {
-		d.Scaling = &scaling
+		*d.Scaling = 0
 	} else if *d.Scaling < existing.UtilizedScaling {
-		d.Scaling = &scaling
+		*d.Scaling = 0
 		_, err := fmt.Fprintf(os.Stderr,
 			"WARNING: %s currently utilizes %d units, but only %d are specified. Ignoring specified units",
 			d.Name, existing.UtilizedScaling, *d.Scaling)
