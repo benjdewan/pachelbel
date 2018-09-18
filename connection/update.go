@@ -11,7 +11,7 @@ import (
 // then wait on the returned recipe until it completes or the
 // timeout is exceeded.
 func (cxn *Connection) UpdateScaling(deployment Deployment) error {
-	if deployment.GetScaling() == 0 {
+	if deployment.GetScaling() <= 1 {
 		return nil
 	}
 
