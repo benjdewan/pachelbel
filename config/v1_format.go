@@ -14,7 +14,7 @@ type deploymentV1 struct {
 	Notes         string      `json:"notes"`
 	SSL           bool        `json:"ssl"`
 	Teams         [](*TeamV1) `json:"teams"`
-	Scaling       *int        `json:"scaling"`
+	Scaling       int         `json:"scaling"`
 	WiredTiger    bool        `json:"wired_tiger"`
 	CacheMode     bool        `json:"cache_mode"`
 	Timeout       *int        `json:"timeout,omitempty"`
@@ -88,10 +88,10 @@ func (d deploymentV1) GetVersion() string {
 // GetScaling returns the database scaling value for the deployment, or 1
 // if it does not exist.
 func (d deploymentV1) GetScaling() int {
-	if d.Scaling == nil {
+	if d.Scaling <= 1 {
 		return 1
 	}
-	return *d.Scaling
+	return d.Scaling
 }
 
 // GetTimeout returns the maximum timeout in seconds to wait on recipes for

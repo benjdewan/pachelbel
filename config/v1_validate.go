@@ -24,7 +24,7 @@ func validateV1(d deploymentV1, input string) (runner.Runner, error) {
 	errs = append(errs, validateCacheMode(d.CacheMode, d.Type)...)
 
 	if existing, ok := existingDeployment(d.Name); ok {
-		return validateExistingV1(d, existing, input, errs)
+		return validateExistingV1(&d, existing, input, errs)
 	}
 
 	errs = append(errs, validateVersionByTypeV1(&d)...)
@@ -43,15 +43,15 @@ func validateV1(d deploymentV1, input string) (runner.Runner, error) {
 		input, strings.Join(errs, "\n"))
 }
 
-func validateExistingScalingV1(d deploymentV1, existing connection.ExistingDeployment, errs []string) ([]string, []string) {
+func validateExistingScalingV1(d *deploymentV1, existing connection.ExistingDeployment, errs []string) ([]string, []string) {
 	actions := []string{}
-	if d.Scaling == nil || *d.Scaling == existing.Scaling {
-		d.Scaling = nil
-	} else if *d.Scaling < existing.UtilizedScaling {
-		d.Scaling = nil
+	if d.Scaling == 0 || d.Scaling == existing.Scaling {
+		d.Scaling = 0
+	} else if d.Scaling < existing.UtilizedScaling {
+		d.Scaling = 0
 		_, err := fmt.Fprintf(os.Stderr,
 			"WARNING: %s currently utilizes %d units, but only %d are specified. Ignoring specified units",
-			d.Name, existing.UtilizedScaling, *d.Scaling)
+			d.Name, existing.UtilizedScaling, d.Scaling)
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("Internal error while rendering configuration: %v", err))
 		}
@@ -62,7 +62,7 @@ func validateExistingScalingV1(d deploymentV1, existing connection.ExistingDeplo
 	return actions, errs
 }
 
-func validateExistingV1(d deploymentV1, existing connection.ExistingDeployment, input string, errs []string) (runner.Runner, error) {
+func validateExistingV1(d *deploymentV1, existing connection.ExistingDeployment, input string, errs []string) (runner.Runner, error) {
 	d.id = existing.ID
 
 	actions, sErrs := validateExistingScalingV1(d, existing, errs)
@@ -73,7 +73,7 @@ func validateExistingV1(d deploymentV1, existing connection.ExistingDeployment, 
 	} else if versionEquivalence(d.Version, existing.Version) {
 		d.Version = ""
 	} else {
-		vErrs := validateVersionUpgradeV1(&d, existing.Upgrades)
+		vErrs := validateVersionUpgradeV1(d, existing.Upgrades)
 		if len(vErrs) == 0 && !d.Upgradeable {
 			fmt.Printf("A version upgrade for '%s' exists: '%s'\n", d.Name, d.Version)
 			d.Version = ""
@@ -90,7 +90,7 @@ func validateExistingV1(d deploymentV1, existing connection.ExistingDeployment, 
 	}
 	action, runFunc := toAction(actions)
 	deploymentRunner := runner.Runner{
-		Target: runner.Accessor(d),
+		Target: runner.Accessor(*d),
 		Action: action,
 		Run:    runFunc,
 	}

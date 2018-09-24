@@ -48,9 +48,9 @@ func validateName(name string) []string {
 	return []string{}
 }
 
-func validateScaling(scaling *int) []string {
-	if scaling != nil && *scaling < 1 {
-		return []string{"The 'scaling' field must be an integer >= 1"}
+func validateScaling(scaling int) []string {
+	if scaling < 0 {
+		return []string{"The 'scaling' field must be a positive integer"}
 	}
 	return []string{}
 }

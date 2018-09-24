@@ -190,7 +190,7 @@ type: "redis"
 name: "names-are-not-validated"
 datacenter: "aws:us-east-1"
 scaling: 0`,
-		valid: false,
+		valid: true,
 	},
 	{
 		config: `---

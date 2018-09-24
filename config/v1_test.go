@@ -68,8 +68,8 @@ var xor3Tests = []struct {
 }
 
 var (
-	validScaling   int = 2
-	invalidScaling int
+	validScaling   = 2
+	invalidScaling = -1
 )
 
 var configValidateV1Tests = []struct {
@@ -204,7 +204,7 @@ var configValidateV1Tests = []struct {
 			Type:          "redis",
 			Name:          "names-are-not-validated",
 			Datacenter:    "softlayer:dallas-1",
-			Scaling:       &invalidScaling,
+			Scaling:       invalidScaling,
 		},
 		valid: false,
 	},
@@ -214,7 +214,7 @@ var configValidateV1Tests = []struct {
 			Type:          "redis",
 			Name:          "names-are-not-validated",
 			Datacenter:    "aws:us-east-1",
-			Scaling:       &validScaling,
+			Scaling:       validScaling,
 		},
 		valid: true,
 	},
