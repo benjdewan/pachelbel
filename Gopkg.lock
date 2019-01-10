@@ -3,11 +3,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:7ffb38fc438b8b2b051b1e69ebc32710a1a529f961bd340bca9cadcb4041aa9d"
+  digest = "1:090a14229679924525fa3680fdb91556058645a82bf7c34c62ce6d3153856c60"
   name = "github.com/benjdewan/gocomposeapi"
   packages = ["."]
   pruneopts = ""
-  revision = "32b92234bf47478c72091f4667d9efcff4f38dda"
+  revision = "38bce19d5f7d7debf8a8151cfc164ce9521a68c0"
 
 [[projects]]
   digest = "1:eb53021a8aa3f599d29c7102e65026242bdedce998a54837dc67f14b6a97c5fd"
@@ -93,12 +93,12 @@
   revision = "9ac6cf4d929b2fa8fd2d2e6dec5bb0feb4f4911d"
 
 [[projects]]
+  branch = "master"
   digest = "1:1d1d7cc9c374bc5bd1884d07705dbde6d2257de17f5f6504e4335e4d2b60a350"
   name = "github.com/parnurzeal/gorequest"
   packages = ["."]
   pruneopts = ""
   revision = "a578a48e8d6ca8b01a3b18314c43c6716bb5f5a3"
-  version = "v0.2.15"
 
 [[projects]]
   digest = "1:894aef961c056b6d85d12bac890bf60c44e99b46292888bfa66caf529f804457"
