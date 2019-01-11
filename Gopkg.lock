@@ -3,11 +3,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:090a14229679924525fa3680fdb91556058645a82bf7c34c62ce6d3153856c60"
+  digest = "1:28f9e4e340ecfb62b6bf56353620190aa2f0123bb0ac17281aa741d1b4cab3be"
   name = "github.com/benjdewan/gocomposeapi"
   packages = ["."]
   pruneopts = ""
-  revision = "38bce19d5f7d7debf8a8151cfc164ce9521a68c0"
+  revision = "d376c9c08513f0d243d8fa942d4cb156a659af1f"
 
 [[projects]]
   digest = "1:eb53021a8aa3f599d29c7102e65026242bdedce998a54837dc67f14b6a97c5fd"
