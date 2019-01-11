@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	compose "github.com/benjdewan/gocomposeapi"
@@ -130,4 +131,11 @@ func createClient(apiKey string, w io.Writer) (*compose.Client, error) {
 		panic(err)
 	}
 	return client.SetLogger(true, w), nil
+}
+
+func isEOF(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "EOF")
 }

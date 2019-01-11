@@ -135,8 +135,18 @@ func (cxn *Connection) Add(id string) {
 // GetAndAdd retrieves the latest deployment information about the named
 // deployment and stores its ID
 func (cxn *Connection) GetAndAdd(name string) error {
+	return cxn.getAndAddRetryable(name, 0, 5)
+}
+
+func (cxn *Connection) getAndAddRetryable(name string, retries, max int) error {
 	deployment, errs := cxn.client.GetDeploymentByName(name)
+	retries += 1
 	if len(errs) != 0 {
+		if retries >= max {
+			return fmt.Errorf("Unable to get the latest details of '%s':\n%v", name, errs)
+		} else if len(errs) == 1 && isEOF(errs[0]) {
+			return cxn.getAndAddRetryable(name, retries, max)
+		}
 		return fmt.Errorf("Unable to get the latest details of '%s':\n%v", name, errs)
 	}
 	cxn.newDeploymentIDs.Store(deployment.ID, struct{}{})
